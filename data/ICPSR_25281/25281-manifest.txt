@@ -1,0 +1,77 @@
+File Manifest for ICPSR 25281
+
+Ryff, Carol D., and Margie E. Lachman. Midlife in the United States (MIDUS
+2): Cognitive Project, 2004-2006. ICPSR25281-v6. Ann Arbor, MI: Inter-
+university Consortium for Political and Social Research [distributor],
+2017-11-17. http://doi.org/10.3886/ICPSR25281.v6
+
+Details on the version history can be found below the file listings.
+
+
+Study-level Documentation
+
+    Filename                            Record  Record    Var.    Date        MD5
+                                        Length  Count     Count   Updated     Checksum
+
+    25281-descriptioncitation.pdf       -       -         -       2019-06-10  -
+
+    25281-related_literature.txt        -       -         -       daily       -
+
+    25281-manifest.txt                  -       -         -       daily       -
+
+
+DS0001 Midlife in the United States (MIDUS 2): Cognitive Project, 2004-2006
+
+    Filename                            Record  Record    Var.    Date        MD5
+                                        Length  Count     Count   Updated     Checksum
+
+    25281-0001-Codebook.pdf             -       -         -       2017-11-17  e3fb53733b8f35093a7e9af2c1bc000d
+
+    25281-0001-Data.dta                 -       4,512     222     2017-11-17  15fe04c62c03534f7cb92a8c830801ae
+
+    25281-0001-Data.rda                 -       4,512     222     2017-11-17  02fd4caf63054f372d3c6a4ff28a5cc6
+
+    25281-0001-Data.sav                 -       4,512     222     2017-11-17  a0200d21b341e602906ea7978404fea5
+
+    25281-0001-Data.stc                 -       4,512     222     2017-11-17  4fd7e5de240a6843aa1e05b6c2e096e2
+
+    25281-0001-Data.tsv                 -       4,512     222     2017-11-17  f2758d58e56261edfaf40344525003e3
+
+    25281-0001-Data.txt                 873     4,512     222     2017-11-17  b834e26cac4858b8990e8f8f4cf0095a
+
+    25281-0001-Documentation-data_notes.pdf -       -         -       2017-11-17  3efb51dcda22898a494fb1b0b8df0e19
+
+    25281-0001-Documentation-protocol.pdf -       -         -       2017-11-17  64cb171d2b6a75d3eb4e6cb895c9508a
+
+    25281-0001-Documentation-readme.pdf -       -         -       2017-11-17  d4b3bc8aa6f51f4d65c66f87a608cbc8
+
+    25281-0001-Documentation-varnames.pdf -       -         -       2017-11-17  9a8b4b9e537f599a106291b32e463c9c
+
+    25281-0001-Documentation-weights.pdf -       -         -       2017-11-17  3b38bd3c10e5dae7f03a38a908e22d0f
+
+    25281-0001-Setup.dct                -       -         -       2017-11-17  73352200dfd7ccfbeb2e1601924582ea
+
+    25281-0001-Setup.do                 -       -         -       2017-11-17  8852d8afb8fdaf131f7b9ba821961328
+
+    25281-0001-Setup.sas                -       -         -       2017-11-17  6cd21ef579635033feddc79576567edf
+
+    25281-0001-Setup.sps                -       -         -       2017-11-17  323679f781733ac7157aedfbd3482bd5
+
+    25281-0001-Supplemental_syntax.do   -       -         -       2017-11-17  822397ad2d982a4c04f47f978d13359e
+
+    25281-0001-Supplemental_syntax.sas  -       -         -       2017-11-17  e021a57ea6d8aff10f5aba996a13051f
+
+    25281-0001-Zipped_package-midusxml.zip -       -         -       2017-11-17  12592b8b82a108b6d0b98a3b3e9ca981
+
+
+Version History
+
+2017-11-17 This collection is being updated, per request from the PI, to
+reflect a title change; the corresponding downloadable files are only being
+updated to reflect the title change, where applicable.  2013-04-29 Update
+to documentation files.  2013-03-15 Codebooks in XML (DDI 3) and PDF
+formats have been created.These were provided by the PI. There have been
+minor changes to the data that are detailed in the readme file.  2011-10-25
+The document titled DDI codebook has been renamed Codebook.  2010-11-01 The
+data have been updated and now include 306 cases from the Milwaukee
+subsample. The documentation has also been updated to reflect this change.

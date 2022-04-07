@@ -1,0 +1,23 @@
+Bibliography
+Midlife in the United States (MIDUS) Series
+
+This bibliography includes published and unpublished works that are
+related to ICPSR series 203. It includes works that are based on
+primary or secondary analysis of the data, or which describe or critique
+those data or the collection methodology. This list represents all items
+known to ICPSR as of 2019-05-21.
+
+If you publish a work or know of other works that are based on these data,
+please send the complete citation and name of the ICPSR series used to:
+icpsr-biblio-notify@umich.edu 
+
+
+1. Braun, Michael; Alwin, Duane F.; Scott, Jacqueline, "Generational Change
+in Gender Roles: Western Industrialized and Former Socialist Countries
+Compared." International Sociological Association, 1998.
+
+2. Fullerton, Andrew S.; Long, Michael A.; Anderson, Kathryn Freeman, "Job
+insecurity and substance use in the United States: Stress, strain, and the
+gendering of precarious employment." In Research in the Sociology of Work.
+Research in the Sociology of Work. 241 - 271, Emerald Group Publishing
+Limited,2016. DOI: doi:10.1108/S0277-283320160000029026

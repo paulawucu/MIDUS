@@ -1,0 +1,73 @@
+File Manifest for ICPSR 37095
+
+Ryff, Carol D., and Margie E. Lachman. Midlife in the United States (MIDUS
+3): Cognitive Project, 2013-2017. ICPSR37095-v2. Ann Arbor, MI: Inter-
+university Consortium for Political and Social Research [distributor],
+2019-04-18. http://doi.org/10.3886/ICPSR37095.v2
+
+Details on the version history can be found below the file listings.
+
+
+Study-level Documentation
+
+    Filename                            Record  Record    Var.    Date        MD5
+                                        Length  Count     Count   Updated     Checksum
+
+    37095-descriptioncitation.pdf       -       -         -       2019-10-22  -
+
+    37095-related_literature.txt        -       -         -       daily       -
+
+    37095-manifest.txt                  -       -         -       daily       -
+
+
+DS0001 Midlife in the United States (MIDUS 3): Cognitive Project, 2013-2017
+
+    Filename                            Record  Record    Var.    Date        MD5
+                                        Length  Count     Count   Updated     Checksum
+
+    37095-0001-Codebook-DDI.pdf         -       -         -       2019-04-18  3e34dfaafe049162e362c6745e398f6e
+
+    37095-0001-Codebook-ICPSR.pdf       -       -         -       2019-04-18  fdb853bb431b044f285366944eea5fe4
+
+    37095-0001-Data.dta                 -       3,291     245     2019-04-18  9d8adc5c55290e58f9326d873ee69ddf
+
+    37095-0001-Data.rda                 -       3,291     245     2019-04-18  83806118994b61afefcb8cadd599eb8b
+
+    37095-0001-Data.sav                 -       3,291     245     2019-04-18  81ec557cacbccd0e14bd3d92d840d01f
+
+    37095-0001-Data.stc                 -       3,291     245     2019-04-18  9de94b0f58a3326a6bc4c5210b24a159
+
+    37095-0001-Data.tsv                 -       3,291     245     2019-04-18  6cc21ad21522f1cdd319ab03ceef33be
+
+    37095-0001-Data.txt                 2202    3,291     245     2019-04-18  762f3a028d89906c195813c4f113f954
+
+    37095-0001-Documentation-Data_File_Notes.pdf -       -         -       2019-04-18  5e4a406764404afe503ff552e5d6a8c9
+
+    37095-0001-Documentation-Readme.pdf -       -         -       2019-04-18  6facf5153df6194f0c1379395c3827c8
+
+    37095-0001-Documentation-Variable_Naming.pdf -       -         -       2019-04-18  ece5425e57b92f4f9b195ae8b3d9d50d
+
+    37095-0001-Report-Field_Reports.pdf -       -         -       2019-04-18  4f818c4f64bb5b6b6f0e1ce11cd5c0a4
+
+    37095-0001-Setup.dct                -       -         -       2019-04-18  dadcddc3fc4369f037e099c187cbfa36
+
+    37095-0001-Setup.do                 -       -         -       2019-04-18  9ad81f9c544553625597ba2ba0036a0c
+
+    37095-0001-Setup.sas                -       -         -       2019-04-18  8fb8e28b6bef48dd8947a253891e2402
+
+    37095-0001-Setup.sps                -       -         -       2019-04-18  c7b4b4d614ee701c2a56a08d0ac067d4
+
+    37095-0001-Supplemental_syntax.do   -       -         -       2019-04-18  34b25fa118e95b3b85f18497b3a7c2cd
+
+    37095-0001-Supplemental_syntax.sas  -       -         -       2019-04-18  2b4db82e3a9afd157ccf5da302e1530a
+
+    37095-0001-Zipped_package-midus_ddi.zip -       -         -       2019-04-18  ec87b409307c87011e092c3cf1b99556
+
+
+Version History
+
+2019-04-18 This collection has been updated to include new data supplied by
+the P.I. The resupplied data includes new cases for the MIDUS Milwaukee 2
+sample, as well as data collected as part of the MIDUS 3 refielding effort
+undertook in 2017 to increase participant completion of the BTACT.
+Documentation has been updated accordingly.
