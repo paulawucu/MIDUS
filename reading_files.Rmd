@@ -11,6 +11,7 @@ This file is used to read in files and write files with selected
 library(tidyverse)
 library(lubridate)
 library(patchwork)
+library(caret)
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 theme_set(theme_minimal() + theme(legend.position = "bottom") + theme(plot.title = element_text(hjust = 0.5)))
 ```
@@ -187,4 +188,214 @@ Wide distribution with a large amount of outliers, person time may be a better c
 
 Question:
 invalid meaning, how to distinguish?
+
+### Confirm milwaukee sample id
+
+```{r}
+mke1 = read_tsv("./data/MKE Data.tsv")
+milwaukee_only_test = 
+  inner_join(m2p3, mke1, by = "M2ID") %>% 
+  select(M2ID, M2FAMNUM)
+identical(milwaukee_only$M2ID, milwaukee_only_test$M2ID)
+```
+
+The filtered ID done prev to the complete dataset (M2P3) is indeed the milwaukee sample M2ID.
+
+
+### Current variables extract & data preprocessing
+MIDUS 2
+```{r}
+# prev study also in
+#m2p4001:aggregated updated; m2p4002:medication stacked updated public n = 7174
+m2p4 = read_tsv("./data/ICPSR_29282/DS0001/29282-0001-Data.tsv") 
+
+m2p1 = read_tsv("./data/ICPSR_04652/DS0001/04652-0001-Data.tsv")
+
+# no smoking yet, also included B1SA11Z (M2 - stroke history)
+m2p1_selected = m2p1 %>% select(M2ID, B1PAGE_M2,  B1PRSEX, B1PF7A, B1PB1, B1PTSEI, B1PB19, B1PPARTN, B1PA6A, 
+                                B1SA11W, B1SA11Z,B1SA62A, B1SA62B, B1SA62C, B1SA62D, B1SA62E, B1SA62F, 
+                                B1SA62G, B1SA62H, B1SA62I, B1SA62J)
+m2p4_selected = m2p4 %>% select(M2ID, B4QCT_EA, B4QCT_EN, B4QCT_MD, B4QCT_PA, B4QCT_PN, B4QCT_SA, B4HMETMW)
+m2p3_selected = m2p3 %>% 
+  select(M2ID, M2FAMNUM, B3TCOMPZ3, B3TEMZ3, B3TEFZ3, B3PIDATE_MO, B3PIDATE_YR)
+
+sum(is.na(m2p3_selected$M2FAMNUM)==TRUE) # only m2p3_selected has 306 missing - family numbers
+```
+
+```{r}
+# prev data integration
+m2_df = list(m2p3_selected, m2p1_selected, m2p4_selected) %>% reduce(full_join, by = "M2ID") %>% 
+  filter(M2ID %in% m2p3_selected$M2ID)
+
+# Milwaukee sample family number filled in
+m2_df = 
+  m2_df %>% 
+  mutate(M2FAMNUM = ifelse(is.na(M2FAMNUM), M2ID, M2FAMNUM))
+
+# NA investigation
+m2_df %>% 
+  select_if(function(x) any(is.na(x))) %>% 
+  summarise_each(funs(sum(is.na(.))))
+
+# Most of the NA's are from M2P4. Only 1152 observations left
+m2p3_selected %>% 
+  filter(M2ID %in% m2p4_selected$M2ID)
+```
+
+
+```{r, eval = F}
+m2p1_condition_nostrk = m2p1 %>% 
+  select(M2ID, B1SPWBA2, B1SPWBE2, B1SPWBG2, B1SPWBR2, B1SPWBU2, B1SPWBS2, 
+         B1SMASTE, B1SCONST, B1SCTRL, 
+         B1SESTEE, B1SINTER, B1SINDEP,
+         B1SAGENC, B1SAGREE, B1SNEURO, B1SCONS1)  # no b1sexta, find it in the code book
+```
+
+MIDUS 3
+```{r}
+m3p1 = read_tsv("./data/ICPSR_36346/DS0001/36346-0001-Data.tsv")
+m3p1_selected = m3p1 %>% 
+  select(M2ID, C1PA6A, C1SA11Z, C1PB19)
+
+m3p3_selected = m3p3 %>% 
+  select(M2ID, M2FAMNUM, C3TCOMP, C3TEM, C3TEF, C3IDATE_MO, C3IDATE_YR, C1PRAGE)
+
+sum(is.na(m3p3_selected$C1PRAGE)==TRUE) #family number missing
+```
+
+```{r}
+m3_df = list(m3p3_selected, m3p1_selected) %>% reduce(left_join, by = "M2ID")
+
+m3_df %>% 
+  filter(is.na(M2FAMNUM)) %>%  # left join: 330 missing the family num, need the m3 mke
+  filter(!(M2ID %in% milwaukee_only_test$M2ID))
+
+# for now, just fill in their M2ID as family numbers
+m3_df =  m3_df %>% 
+  mutate(M2FAMNUM = ifelse(is.na(M2FAMNUM), M2ID, M2FAMNUM))
+
+# if in m2 has a fam num, why in m3 didn't
+#m2_df %>% 
+#  filter(M2ID %in% m3_fam_missing$M2ID)
+```
+
+
+### Stroke analysis
+```{r}
+# missing: or: 1670, and: 1670
+# 0:no, 1:yes, 7:dk
+stroke_df = merge(x = m2p1_selected[, c("M2ID", "B1PA6A", "B1SA11Z")], y = m3p1_selected[,c("M2ID", "C1PA6A", "C1SA11Z")], by = "M2ID", all.x=TRUE) %>%
+  filter(!(is.na(C1PA6A) & is.na(C1SA11Z))) %>% 
+  mutate(B1PA6A = recode(B1PA6A, `2` = 0),
+         C1PA6A = recode(C1PA6A, `2` = 0),
+         B1SA11Z = recode(B1SA11Z, `2` = 0),
+         C1SA11Z = recode(C1SA11Z, `2` = 0),
+         D1PA6A = C1PA6A - B1PA6A, # D for delta
+         D1SA11Z = C1SA11Z - B1SA11Z)  
+# stroke history var does not contain refused
+# Stroke history: the unchanged
+stroke_df %>% 
+  filter(D1PA6A == 0) %>% 
+  group_by(B1PA6A, C1PA6A) %>% 
+  summarize(n = n())
+
+# History: the changed: 0->1(1 target), 1->0(-1 invalid), 0->7(7 dk), 7->0(-7 invalid?), 7->1(-6 target), 1->7(6 invalid)
+stroke_df %>% 
+  filter(D1PA6A != 0) %>% 
+  group_by(D1PA6A) %>% 
+  summarize(n = n())
+
+# within 12 month contains refused and missing, filtered out during data processing
+# stroke within 12 months, unchanged (1->1, reoccurring strokes?)
+stroke_df %>% 
+  filter(!(B1SA11Z %in% c(-1,8) | C1SA11Z %in% c(-1,8))) %>% 
+  filter(D1SA11Z == 0) %>% 
+  select(-c(B1PA6A, C1PA6A, D1PA6A)) %>% 
+  group_by(B1SA11Z, C1SA11Z) %>% 
+  summarize(n = n())
+
+# stroke within 12 months, changed
+stroke_df %>% 
+  filter(!(B1SA11Z %in% c(-1,8) | C1SA11Z %in% c(-1,8))) %>% 
+  filter(D1SA11Z != 0) %>% 
+  select(-c(B1PA6A, C1PA6A, D1PA6A)) %>% 
+  group_by(B1SA11Z, C1SA11Z,D1SA11Z) %>% 
+  summarize(n = n())
+
+# inconsistency: history and recent 12 month (?)
+# those who report having strokes recently but report no stroke history
+```
+
+### Marital status change 
+```{r}
+# combine data, right now just focus on the non-missing subjects
+mar_df = merge(x = m2p1_selected[, c("M2ID", "B1PB19")], 
+               y = m3p1_selected[,c("M2ID", "C1PB19")], by = "M2ID", all.x=TRUE) %>% 
+  drop_na()
+
+# the results are quite spreaded-out, how to code for them?
+mar_df %>% 
+  mutate(D1PB19 = C1PB19 - B1PB19) %>% 
+  filter(D1PB19 != 0) %>% 
+  group_by(B1PB19, C1PB19, D1PB19) %>% 
+  summarize(n = n())
+```
+
+
+
+### Univariate Analysis
+thoughts on univariate analysis rn: level and change in EF and EM. 
+
+Very primitive, need to change later
+```{r}
+# parameters setup 
+theme1 = trellis.par.get()
+theme1$plot.symbol$col = rgb(0.4556, 0.5444, 0, .3) #
+theme1$plot.symbol$pch = 16
+theme1$plot.line$col = rgb(0.8, 0, 0.2, 1) #0.5316, 0.4684
+theme1$plot.line$lwd = 2
+theme1$strip.background$col = rgb(0.2611, 0.2124, 0.5265, .2)
+trellis.par.set(theme1)
+```
+
+```{r fig.height=10, fig.width=10, out.width="90%"}
+# M2 continuous
+m2_df_graph_cont = m2_df %>% 
+  drop_na() %>% 
+  select(-c(B1PRSEX, B1PF7A, B1PB19, B1PPARTN, B1PA6A, B1SA11W, B1SA11Z, B1SA62A, B1SA62B, 
+            B1SA62C, B1SA62D, B1SA62E, B1SA62F, B1SA62G, B1SA62H, B1SA62I, B1SA62J, B3PIDATE_MO, B3PIDATE_YR)) %>% 
+  filter(B4QCT_SA <= 25 & B1PTSEI <= 80.53 & B4HMETMW <= 26355 & B4QCT_EN <=25 & B4QCT_MD <= 3 & B4QCT_PN <= 21 &
+           B1PB1 <= 12 & B4QCT_EA <= 25)
+# Cognition composite score
+x_feature = model.matrix(`B3TCOMPZ3` ~., m2_df_graph_cont[3:15])[, -1]
+y = m2_df_graph_cont$B3TCOMPZ3
+featurePlot(x_feature, y, plot = "scatter", labels = c("", "Composite Scores"),
+            type = c("p", "smooth"), layout = c(3,4))
+
+# Episodic Memory
+x_feature = model.matrix(`B3TEMZ3` ~., m2_df_graph_cont[3:15])[, -1]
+y = m2_df_graph_cont$B3TEMZ3
+featurePlot(x_feature, y, plot = "scatter", labels = c("", "Episodic Memory"),
+            type = c("p", "smooth"), layout = c(3,4))
+
+# Executive Function
+x_feature = model.matrix(`B3TEFZ3` ~., m2_df_graph_cont[3:15])[, -1]
+y = m2_df_graph_cont$B3TEFZ3
+featurePlot(x_feature, y, plot = "scatter", labels = c("", "Executive Function"),
+            type = c("p", "smooth"), layout = c(3,4))
+
+```
+```{r fig.height=10, fig.width=10, out.width="90%"}
+m2_df_graph_cate = m2_df %>% 
+  drop_na() %>% 
+  select(c(B3TCOMPZ3, B3TEMZ3, B3TEFZ3, B1PRSEX, B1PF7A, B1PB19, B1PPARTN, B1PA6A, B1SA11W, B1SA11Z, B1SA62A, B1SA62B, 
+            B1SA62C, B1SA62D, B1SA62E, B1SA62F, B1SA62G, B1SA62H, B1SA62I, B1SA62J))
+```
+
+
+
+
+
+
+### TODO: missing value investigation (look at dataset other than the aggregated one, etc.), milwaukee sample data integration, add smoking var | family number (random intercept for each family - LMM), 
 
