@@ -1,0 +1,170 @@
+Updates
+================
+Paula Wu
+4/20/2022
+
+### Apr.20 Updates
+
+1.  Get rid of the outliers in `B3TCOMPZ3`,`B3TEMZ3`, `B3TEFZ3` and
+    re-draw the graphs.
+2.  M3 family number investigation and imputation. Integrate the
+    milwaukee sample data to the working datasets.
+3.  For M2, only focus on subjects that has CTQ numbers. Integrate the
+    milwaukee sample data to the working datasets.
+4.  Recode for marital status (1 - married; 0 - other status)
+5.  Correlation Plot
+
+### TODO
+
+1.  Stroke: report inconsistency
+2.  Covariates investigations
+3.  Resilience Factor
+4.  Missing Data proportion
+5.  Smoking
+6.  Modeling
+
+## MIDUS 2
+
+``` r
+# Data integration
+m2_df = list(m2p3_selected, m2p1_selected, m2p4_selected) %>% reduce(full_join, by = "M2ID")
+
+# Milwaukee sample family number filled in
+m2_df = 
+  m2_df %>% 
+  mutate(M2FAMNUM = ifelse(is.na(M2FAMNUM), M2ID, M2FAMNUM))
+
+# only keep those with CTQ numbers
+m2_df = 
+  m2_df %>% 
+  filter(!(is.na(B4QCT_EA) & is.na(B4QCT_EN) & is.na(B4QCT_MD) & is.na(B4QCT_PA) & is.na(B4QCT_PN) & is.na(B4QCT_SA)))
+
+# milwaukee sample information filled in
+mke1_in_m2= intersect(m2_df$M2ID, mke1$M2ID)
+
+# ethnicity: BACR7A = 2
+# don't have cohabitation in mke1, impute as NA
+mke1_to_add = 
+  mke1 %>% 
+  select(M2ID, BACRAGE, BACRSEX, BACB1, BACTSEI, BACB19, BACA6A, BACAS11W, BACAS11Z, 
+         BACAS62A, BACAS62B, BACAS62C, BACAS62D, BACAS62E, BACAS62F, BACAS62G, BACAS62H, BACAS62I, BACAS62J) %>% 
+  filter(M2ID %in% mke1_in_m2) %>% 
+  mutate(BACR7A = 2, BACPARTN = NA) %>%  # added two more columns
+  select(M2ID, BACRAGE, BACRSEX, BACR7A, BACB1, BACTSEI, BACB19, BACPARTN, everything())
+
+# fill in data
+for (i in 1:(length(mke1_to_add)-1)){
+  for (j in mke1_to_add$M2ID){
+    m2_df[m2_df$M2ID == j, i+7] = mke1_to_add[mke1_to_add$M2ID == j, i+1]
+  }
+}
+
+# Marital Status recoding (1-married; 0-others)
+m2_df =
+  m2_df %>% 
+  mutate(B1PB19 = ifelse(B1PB19 == 1, 1, 0))
+```
+
+Done MIDUS 2 dataset integrations and imputations
+
+## MIDUS 3
+
+``` r
+m3_df = list(m3p3_selected, m3p1_selected) %>% reduce(left_join, by = "M2ID")
+
+mke2_in_m3= intersect(m3_df$M2ID, mke2$M2ID)
+```
+
+All subjects whose don’t have family numbers are from the Milwaukee
+sample (MKE2). Impute with their own ID.
+
+``` r
+m3_df = 
+  m3_df %>% 
+  mutate(M2FAMNUM = ifelse(is.na(M2FAMNUM), M2ID, M2FAMNUM))
+```
+
+``` r
+# data imputation 
+mke2_to_add = 
+  mke2 %>% 
+  select(M2ID, CACA6A, CACAS11Z, CACB19)
+
+for (i in 1:(length(mke2_to_add)-1)){
+  for (j in mke2_to_add$M2ID){
+    m3_df[m3_df$M2ID == j, i+8] = mke2_to_add[mke2_to_add$M2ID == j, i+1]
+  }
+}
+```
+
+### Univariate Analysis
+
+``` r
+# parameters setup 
+theme1 = trellis.par.get()
+theme1$plot.symbol$col = rgb(0.4556, 0.5444, 0, .3) #
+theme1$plot.symbol$pch = 16
+theme1$plot.line$col = rgb(0.8, 0, 0.2, 1) #0.5316, 0.4684
+theme1$plot.line$lwd = 2
+theme1$strip.background$col = rgb(0.2611, 0.2124, 0.5265, .2)
+trellis.par.set(theme1)
+```
+
+``` r
+# M2 continuous
+m2_df_graph_cont = m2_df %>% 
+  select(-c(B1PRSEX, B1PF7A, B1PB19, B1PPARTN, B1PA6A, B1SA11W, B1SA11Z, B1SA62A, B1SA62B, 
+            B1SA62C, B1SA62D, B1SA62E, B1SA62F, B1SA62G, B1SA62H, B1SA62I, B1SA62J, B3PIDATE_MO, B3PIDATE_YR)) %>% 
+  filter(B4QCT_SA <= 25 & B1PTSEI <= 80.53 & B4HMETMW <= 26355 & B4QCT_EN <=25 & B4QCT_MD <= 3 & B4QCT_PN <= 21 &
+           B1PB1 <= 12 & B4QCT_EA <= 25 & B3TCOMPZ3 < 4 & B3TEMZ3 < 4 & B3TEFZ3 < 4)
+
+# Cognition composite score
+x_feature = model.matrix(`B3TCOMPZ3` ~., m2_df_graph_cont[3:15])[, -1]
+y = m2_df_graph_cont$B3TCOMPZ3
+featurePlot(x_feature, y, plot = "scatter", labels = c("", "Composite Scores"),
+            type = c("p", "smooth"), layout = c(3,4))
+```
+
+<img src="updates_files/figure-gfm/unnamed-chunk-8-1.png" width="90%" />
+
+``` r
+# Episodic Memory
+x_feature = model.matrix(`B3TEMZ3` ~., m2_df_graph_cont[3:15])[, -1]
+y = m2_df_graph_cont$B3TEMZ3
+featurePlot(x_feature, y, plot = "scatter", labels = c("", "Episodic Memory"),
+            type = c("p", "smooth"), layout = c(3,4))
+```
+
+<img src="updates_files/figure-gfm/unnamed-chunk-8-2.png" width="90%" />
+
+``` r
+# Executive Function
+x_feature = model.matrix(`B3TEFZ3` ~., m2_df_graph_cont[3:15])[, -1]
+y = m2_df_graph_cont$B3TEFZ3
+featurePlot(x_feature, y, plot = "scatter", labels = c("", "Executive Function"),
+            type = c("p", "smooth"), layout = c(3,4))
+```
+
+<img src="updates_files/figure-gfm/unnamed-chunk-8-3.png" width="90%" />
+
+Correlation Plot of independent variables in M2 dataset
+(i.e. `B3TCOMPZ3`,`B3TEMZ3`, `B3TEFZ3` are not included in the graph)
+
+``` r
+m2_df %>% 
+  select(-c(M2ID, M2FAMNUM, B3TCOMPZ3, B3TEMZ3, B3TEFZ3)) %>% 
+  ggcorr(label=TRUE, hjust = 0.9, layout.exp = 2, label_size = 3, label_round = 2)
+```
+
+<img src="updates_files/figure-gfm/unnamed-chunk-9-1.png" width="100%" />
+
+``` r
+  #ggtitle("After") +
+  #theme(plot.title = element_text(hjust = 0.5)) +
+  #labs(caption = "1.b")
+```
+
+High correlation between marital status and cohabitation, among the drug
+use variables (`B1SA62A - J`), among the CTQ score variables
+(`B4QCT_EA`, `B4QCT_EN`, `B4QCT_MD`, `B4QCT_PA`, `B4QCT_PN`,
+`B4QCT_SA`).
