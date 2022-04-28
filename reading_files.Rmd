@@ -266,6 +266,11 @@ sum(is.na(m3p3_selected$C1PRAGE)==TRUE) #family number missing
 ```{r}
 m3_df = list(m3p3_selected, m3p1_selected) %>% reduce(left_join, by = "M2ID")
 
+# 
+m3_df %>% 
+  filter(M2ID %in% m2_df$M2ID) %>% 
+  filter(is.na(M2ID))
+
 m3_df %>% 
   filter(is.na(M2FAMNUM)) %>%  # left join: 330 missing the family num, need the m3 mke
   filter(!(M2ID %in% milwaukee_only_test$M2ID))
@@ -273,10 +278,6 @@ m3_df %>%
 # for now, just fill in their M2ID as family numbers
 m3_df =  m3_df %>% 
   mutate(M2FAMNUM = ifelse(is.na(M2FAMNUM), M2ID, M2FAMNUM))
-
-# if in m2 has a fam num, why in m3 didn't
-#m2_df %>% 
-#  filter(M2ID %in% m3_fam_missing$M2ID)
 ```
 
 
@@ -365,7 +366,8 @@ m2_df_graph_cont = m2_df %>%
   select(-c(B1PRSEX, B1PF7A, B1PB19, B1PPARTN, B1PA6A, B1SA11W, B1SA11Z, B1SA62A, B1SA62B, 
             B1SA62C, B1SA62D, B1SA62E, B1SA62F, B1SA62G, B1SA62H, B1SA62I, B1SA62J, B3PIDATE_MO, B3PIDATE_YR)) %>% 
   filter(B4QCT_SA <= 25 & B1PTSEI <= 80.53 & B4HMETMW <= 26355 & B4QCT_EN <=25 & B4QCT_MD <= 3 & B4QCT_PN <= 21 &
-           B1PB1 <= 12 & B4QCT_EA <= 25)
+           B1PB1 <= 12 & B4QCT_EA <= 25 & B3TCOMPZ3 < 4 & B3TEMZ3 < 4 & B3TEFZ3 < 4)
+
 # Cognition composite score
 x_feature = model.matrix(`B3TCOMPZ3` ~., m2_df_graph_cont[3:15])[, -1]
 y = m2_df_graph_cont$B3TCOMPZ3
@@ -391,8 +393,6 @@ m2_df_graph_cate = m2_df %>%
   select(c(B3TCOMPZ3, B3TEMZ3, B3TEFZ3, B1PRSEX, B1PF7A, B1PB19, B1PPARTN, B1PA6A, B1SA11W, B1SA11Z, B1SA62A, B1SA62B, 
             B1SA62C, B1SA62D, B1SA62E, B1SA62F, B1SA62G, B1SA62H, B1SA62I, B1SA62J))
 ```
-
-
 
 
 
