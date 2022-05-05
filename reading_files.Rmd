@@ -325,6 +325,8 @@ stroke_df %>%
 
 # inconsistency: history and recent 12 month (?)
 # those who report having strokes recently but report no stroke history
+
+
 ```
 
 ### Marital status change 

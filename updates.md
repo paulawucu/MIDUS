@@ -25,6 +25,14 @@ Paula Wu
 5.  Smoking - done
 6.  Remove invalid entries - done
 
+### May.5 Updates
+
+1.  Missing data proportion - not done yet!
+2.  Stroke inconsistency double-check (M2 and M3)
+3.  Smoking inconsistency check and data imputation
+4.  (All) Resilience Factors and missing entries
+5.  
+
 ## MIDUS 2
 
 ``` r
@@ -36,21 +44,19 @@ m2_df =
   m2_df %>% 
   mutate(M2FAMNUM = ifelse(is.na(M2FAMNUM), M2ID, M2FAMNUM))
 
-# only keep those with CTQ numbers
-m2_df = 
-  m2_df %>% 
-  filter(!(is.na(B4QCT_EA) & is.na(B4QCT_EN) & is.na(B4QCT_MD) & is.na(B4QCT_PA) & is.na(B4QCT_PN) & is.na(B4QCT_SA)))
-
 # milwaukee sample information filled in
 mke1_in_m2= intersect(m2_df$M2ID, mke1$M2ID)
 
 # ethnicity: BACR7A = 2
 # don't have cohabitation in mke1, impute as NA
+# BACA36, BACA37 are counterpart of B1PA37, B1PA38A
 mke1_to_add = 
   mke1 %>% 
-  select(M2ID, BACRAGE, BACRSEX, BACB1, BACTSEI, BACB19, BACA6A, BACA39, BACAS11W, BACAS11Z, 
-         BACAS62A, BACAS62B, BACAS62C, BACAS62D, BACAS62E, BACAS62F, BACAS62G, BACAS62H, BACAS62I, BACAS62J,
-         BASPWBA2, BASPWBE2, BASPWBG2, BASPWBR2, BASPWBU2, BASPWBS2) %>% 
+  select(M2ID, BACRAGE, BACRSEX, BACB1, BACTSEI, BACB19, BACA6A, BACA36, BACA37, BACA39, BACAS11W,
+         BACAS11Z, BACAS62A, BACAS62B, BACAS62C, BACAS62D, BACAS62E, BACAS62F, BACAS62G, BACAS62H,
+         BACAS62I, BACAS62J,BASPWBA2, BASPWBE2, BASPWBG2, BASPWBR2, BASPWBU2, BASPWBS2,
+         BASMASTE, BASCONST, BASCTRL, BASESTEE, BASINTER, BASINDEP, BASAGENC, BASAGREE,
+         BASEXTRA, BASNEURO, BASCONS1) %>% 
   filter(M2ID %in% mke1_in_m2) %>% 
   mutate(BACR7A = 2, BACPARTN = NA) %>%  # added two more columns
   select(M2ID, BACRAGE, BACRSEX, BACR7A, BACB1, BACTSEI, BACB19, BACPARTN, everything())
@@ -62,68 +68,107 @@ for (i in 1:(length(mke1_to_add)-1)){
   }
 }
 
+# only keep those with CTQ numbers and Cognition Scores
+m2_df = 
+  m2_df %>% 
+  filter(!(is.na(B4QCT_EA) & is.na(B4QCT_EN) & is.na(B4QCT_MD) & is.na(B4QCT_PA) & is.na(B4QCT_PN) & is.na(B4QCT_SA))) %>% 
+  filter(!(is.na(B3TCOMPZ3) & is.na(B3TEMZ3) & is.na(B3TEFZ3)))
+
 # Marital Status recoding (1-married; 0-others)
 m2_df =
   m2_df %>% 
   mutate(B1PB19 = ifelse(B1PB19 == 1, 1, 0))
 
-# resilience factor (part 1) investigation
+# resilience factors missing investigation
+a = m2_df[,c(1,2,31:47)]
 
-a = m2_df %>% 
-  select(M2ID, B1SPWBA2, B1SPWBE2, B1SPWBG2, B1SPWBR2, B1SPWBU2, B1SPWBS2)
 a[!complete.cases(a), ] %>% 
   filter(M2ID %in% mke1_in_m2) # missing data entries are all from the milwaukee sample
 ```
 
-    ## # A tibble: 20 × 7
-    ##     M2ID B1SPWBA2 B1SPWBE2 B1SPWBG2 B1SPWBR2 B1SPWBU2 B1SPWBS2
-    ##    <dbl>    <dbl>    <dbl>    <dbl>    <dbl>    <dbl>    <dbl>
-    ##  1 11397       NA       NA       NA       NA       NA       NA
-    ##  2 13870       NA       NA       NA       NA       NA       NA
-    ##  3 14040       NA       NA       NA       NA       NA       NA
-    ##  4 14087       NA       NA       NA       NA       NA       NA
-    ##  5 14169       NA       NA       NA       NA       NA       NA
-    ##  6 16335       NA       NA       NA       NA       NA       NA
-    ##  7 17041       NA       NA       NA       NA       NA       NA
-    ##  8 10993       NA       NA       NA       NA       NA       NA
-    ##  9 11137       NA       NA       NA       NA       NA       NA
-    ## 10 11461       NA       NA       NA       NA       NA       NA
-    ## 11 12838       NA       NA       NA       NA       NA       NA
-    ## 12 13084       NA       NA       NA       NA       NA       NA
-    ## 13 13089       NA       NA       NA       NA       NA       NA
-    ## 14 13657       NA       NA       NA       NA       NA       NA
-    ## 15 14330       NA       NA       NA       NA       NA       NA
-    ## 16 14842       NA       NA       NA       NA       NA       NA
-    ## 17 15068       NA       NA       NA       NA       NA       NA
-    ## 18 15326       NA       NA       NA       NA       NA       NA
-    ## 19 16835       NA       NA       NA       NA       NA       NA
-    ## 20 19102       NA       NA       NA       NA       NA       NA
+    ## # A tibble: 7 × 19
+    ##    M2ID M2FAMNUM B1SPWBA2 B1SPWBE2 B1SPWBG2 B1SPWBR2 B1SPWBU2 B1SPWBS2 B1SMASTE
+    ##   <dbl>    <dbl>    <dbl>    <dbl>    <dbl>    <dbl>    <dbl>    <dbl>    <dbl>
+    ## 1 11397    11397       NA       NA       NA       NA       NA       NA       NA
+    ## 2 13870    13870       NA       NA       NA       NA       NA       NA       NA
+    ## 3 14040    14040       NA       NA       NA       NA       NA       NA       NA
+    ## 4 14087    14087       NA       NA       NA       NA       NA       NA       NA
+    ## 5 14169    14169       NA       NA       NA       NA       NA       NA       NA
+    ## 6 16335    16335       NA       NA       NA       NA       NA       NA       NA
+    ## 7 17041    17041       NA       NA       NA       NA       NA       NA       NA
+    ## # … with 10 more variables: B1SCONST <dbl>, B1SCTRL <dbl>, B1SESTEE <dbl>,
+    ## #   B1SINTER <dbl>, B1SINDEP <dbl>, B1SAGENC <dbl>, B1SAGREE <dbl>,
+    ## #   B1SEXTRA <dbl>, B1SNEURO <dbl>, B1SCONS1 <dbl>
 
 ``` r
-# Smoking: B1PA39: now smoking cigarettes regularly. 1 - current, 2 - former, 9 - never (question skipped). No NA, no *big* imputation needed 
-# Keep this variable as a dummy variable for now, may consider the B1PA40 (how many cig) later if found that this dummy variable is significant
+# smoking inconsistency investigation
+# B1PA39: now smoking cigarettes regularly. 1 - current, 2 - former, 9 - inapp (question skipped). 
+#         backward skip: B1PA37 = NEVER (=96) or B1PA38A = 2, DK, refused (= 2, 9)
+# B1PA37: age first smoking (age, 96 - never, 97 - dk) Never --> skip to 44
+# B1PA38A: Ever smoked cigarettes regularly (1 - yes, 2 - no, 9 - inapp)
+
+# non-smokers clear
 m2_df %>% 
-  select(M2ID, B1PA39) %>% 
-  group_by(B1PA39) %>% 
+  select(M2ID, B1PA37, B1PA38A, B1PA39) %>% 
+  filter(B1PA37 == 96) %>% 
+  group_by(B1PA37, B1PA38A, B1PA39) %>% 
   summarize(n = n())
 ```
 
-    ## # A tibble: 3 × 2
-    ##   B1PA39     n
-    ##    <dbl> <int>
-    ## 1      1   173
-    ## 2      2   398
-    ## 3      9   684
+    ## # A tibble: 1 × 4
+    ## # Groups:   B1PA37, B1PA38A [1]
+    ##   B1PA37 B1PA38A B1PA39     n
+    ##    <dbl>   <dbl>  <dbl> <int>
+    ## 1     96       9      9   306
 
 ``` r
-# maybe unnecessary, just re-level the three values
-m2_df = m2_df %>% 
-  mutate(B1PA39 = factor(B1PA39, levels = c(9,2,1)))
-unique(m2_df$B1PA39)
+# B1PA37 = 97, may smoke before but forget the age
+# B1PA38A = 1, B1PA39 = 2 --> former
+# B1PA38A = 2, B1PA39 = 9 --> never
+m2_df %>% 
+  select(M2ID, B1PA37, B1PA38A, B1PA39) %>% 
+  filter(B1PA37 == 97) %>% 
+  group_by(B1PA37, B1PA38A, B1PA39) %>% 
+  summarize(n = n())
 ```
 
-    ## [1] 9 2 1
-    ## Levels: 9 2 1
+    ## # A tibble: 2 × 4
+    ## # Groups:   B1PA37, B1PA38A [2]
+    ##   B1PA37 B1PA38A B1PA39     n
+    ##    <dbl>   <dbl>  <dbl> <int>
+    ## 1     97       1      2     2
+    ## 2     97       2      9     5
+
+``` r
+# B1PA37 = age, smoked before
+# be aware of those who smoked before but their B1PA39 = 9, 
+# should categorize them as former instead of non-smokers (maybe?)
+m2_df %>% 
+  select(M2ID, B1PA37, B1PA38A, B1PA39) %>% 
+  filter(!B1PA37 %in% c(96,97)) %>% 
+  group_by(B1PA38A, B1PA39) %>% 
+  summarize(n = n())
+```
+
+    ## # A tibble: 3 × 3
+    ## # Groups:   B1PA38A [2]
+    ##   B1PA38A B1PA39     n
+    ##     <dbl>  <dbl> <int>
+    ## 1       1      1   140
+    ## 2       1      2   370
+    ## 3       2      9   329
+
+``` r
+# Keep this variable as a dummy variable for now, may consider the B1PA40 (how many cig) later if found that this dummy variable is significant
+
+# Data impute, if necessary
+former_smokers = m2_df %>% 
+  select(M2ID, B1PA37, B1PA38A, B1PA39) %>% 
+  filter(!B1PA37 %in% c(96,97) & B1PA39 == 9) %>% 
+  pull(M2ID)
+
+m2_df[m2_df$M2ID %in% former_smokers, which(colnames(m2_df) == "B1PA39")] = 2
+```
 
 ——- Done MIDUS 2 dataset integration and imputations ——- Stroke
 investigation is down below
@@ -189,17 +234,88 @@ stroke_df %>%
     ## # Groups:   inconsistency_checker, B1PA6A [3]
     ##   inconsistency_checker B1PA6A B1SA11Z  size
     ##                   <dbl>  <dbl>   <dbl> <int>
-    ## 1                    -1      1       0    22
-    ## 2                     0      0       0  1022
+    ## 1                    -1      1       0    17
+    ## 2                     0      0       0   950
     ## 3                     0      1       1     5
 
-The inconsistency checker has only 2 values: 0 and -1. Two possibilities
-for getting a 0: 1. had stroke before and/or had it within 12 months; 2.
-never have a stroke. For -1, the subject had a stroke some time before
-the questionnaire but it’s not within 12 months. No inexplicable
-inconsistency here.
+``` r
+# copied from the previous file
+# History: the changed: 0->1(1 target), 1->0(-1 invalid), 0->7(7 dk), 7->0(-7 invalid?), 7->1(-6 target), 1->7(6 invalid)
+stroke_df %>% 
+  filter(D1PA6A != 0) %>% 
+  group_by(D1PA6A) %>% 
+  summarize(n = n())
+```
+
+    ## # A tibble: 3 × 2
+    ##   D1PA6A     n
+    ##    <dbl> <int>
+    ## 1     -1     5
+    ## 2      1    24
+    ## 3      7     1
+
+``` r
+# inconsistency check: M3
+# C1SA11Z: -1 as missing, 8 as refused, 0 as no, 1 as yes
+# (12month history - history ever): -1 as "had one but not in the past 12 months", 1 as invalid
+stroke_df %>% 
+  filter(!C1SA11Z %in% c(-1,8)) %>%  # filter out the "unknown"
+  mutate(inconsistency_checker = C1SA11Z - C1PA6A) %>% 
+  group_by(inconsistency_checker, C1PA6A, C1SA11Z) %>% 
+  summarize(size = n())
+```
+
+    ## # A tibble: 5 × 4
+    ## # Groups:   inconsistency_checker, C1PA6A [5]
+    ##   inconsistency_checker C1PA6A C1SA11Z  size
+    ##                   <dbl>  <dbl>   <dbl> <int>
+    ## 1                    -7      7       0     1
+    ## 2                    -1      1       0    33
+    ## 3                     0      0       0   890
+    ## 4                     0      1       1     7
+    ## 5                     1      0       1     4
+
+``` r
+# just some further investigation, the inconsistent subjects are not from the Milwaukee sample
+stroke_df %>% 
+  filter(C1SA11Z == 1 & C1PA6A == 0) %>% 
+  filter(M2ID %in% mke1_in_m2)
+```
+
+    ## [1] M2ID    B1PA6A  B1SA11Z C1PA6A  C1SA11Z D1PA6A  D1SA11Z
+    ## <0 rows> (or 0-length row.names)
+
+M2: The inconsistency checker has only 2 values: 0 and -1. Two
+possibilities for getting a 0: 1. had stroke before and/or had it within
+12 months; 2. never have a stroke. For -1, the subject had a stroke some
+time before the questionnaire but it’s not within 12 months. No
+inexplicable inconsistency here.
+
+M3: The inconsistency checker has 4 values (5 combinations): -7, -1, 0,
+and 1. Two possibilities for getting a 0 as above.”-7” indicates that
+the subject didn’t know whether he/she had a stroke. “-1” indicates that
+the subject had a stroke some time before the questionnaire but it’s not
+within 12 months. “1” is where the inconsistencies happened: the subject
+indicates that he/she had a stroke in the past 12 months but deny the
+fact that they have a stroke history.
 
 ——- Done MIDUS 3 dataset integration and imputations ——-
+
+### Missing Data
+
+``` r
+m2_df %>% 
+  select_if(function(x) any(is.na(x))) %>% 
+  summarise_each(funs(sum(is.na(.))))
+```
+
+    ## # A tibble: 1 × 18
+    ##   B1PPARTN B1SPWBA2 B1SPWBE2 B1SPWBG2 B1SPWBR2 B1SPWBU2 B1SPWBS2 B1SMASTE
+    ##      <int>    <int>    <int>    <int>    <int>    <int>    <int>    <int>
+    ## 1      136        7        7        7        7        7        7        7
+    ## # … with 10 more variables: B1SCONST <int>, B1SCTRL <int>, B1SESTEE <int>,
+    ## #   B1SINTER <int>, B1SINDEP <int>, B1SAGENC <int>, B1SAGREE <int>,
+    ## #   B1SEXTRA <int>, B1SNEURO <int>, B1SCONS1 <int>
 
 ### Univariate Analysis
 
@@ -235,7 +351,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "Composite Scores"),
             type = c("p", "smooth"), layout = c(3,4))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-10-1.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-11-1.png" width="90%" />
 
 ``` r
 # Episodic Memory
@@ -245,7 +361,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "Episodic Memory"),
             type = c("p", "smooth"), layout = c(3,4))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-10-2.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-11-2.png" width="90%" />
 
 ``` r
 # Executive Function
@@ -255,7 +371,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "Executive Function")
             type = c("p", "smooth"), layout = c(3,4))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-10-3.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-11-3.png" width="90%" />
 
 ``` r
 # M2 categorical
@@ -284,7 +400,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "B4QCT_EA"),
             type = c("p", "smooth"), layout = c(3,7))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-11-1.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-12-1.png" width="90%" />
 
 ``` r
 # B4QCT_EN
@@ -294,7 +410,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "B4QCT_EN"),
             type = c("p", "smooth"), layout = c(3,7))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-11-2.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-12-2.png" width="90%" />
 
 ``` r
 # B4QCT_MD
@@ -304,7 +420,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "B4QCT_MD"),
             type = c("p", "smooth"), layout = c(3,7))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-11-3.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-12-3.png" width="90%" />
 
 ``` r
 # B4QCT_PA
@@ -314,7 +430,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "B4QCT_PA"),
             type = c("p", "smooth"), layout = c(3,7))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-11-4.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-12-4.png" width="90%" />
 
 ``` r
 # B4QCT_PN
@@ -324,7 +440,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "B4QCT_PN"),
             type = c("p", "smooth"), layout = c(3,7))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-11-5.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-12-5.png" width="90%" />
 
 ``` r
 # B4QCT_SA
@@ -334,7 +450,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "B4QCT_SA"),
             type = c("p", "smooth"), layout = c(3,7))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-11-6.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-12-6.png" width="90%" />
 
 Correlation Plot of independent variables in M2 dataset
 (i.e. `B3TCOMPZ3`,`B3TEMZ3`, `B3TEFZ3` are not included in the graph)
@@ -345,7 +461,7 @@ m2_df %>%
   ggcorr(label=TRUE, hjust = 0.9, layout.exp = 2, label_size = 3, label_round = 2)
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-12-1.png" width="100%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-13-1.png" width="100%" />
 
 High correlation between marital status and cohabitation, among the drug
 use variables (`B1SA62A - J`), among the CTQ score variables
