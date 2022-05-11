@@ -51,7 +51,7 @@ mke2 = read_tsv("./data/ICPSR_37120/DS0001/37120-0001-Data-REST.tsv")
 ```{r, echo=FALSE}
 # added B1PA37, B1PA38A for smoking consistency checking
 m2p1_selected = m2p1 %>% 
-  select(M2ID, B1PAGE_M2, B1PRSEX, B1PF7A, B1PB1, B1PTSEI, B1PB19, B1PPARTN, B1PA6A, B1PA37, B1PA38A,
+  select(M2ID, B1PAGE_M2, B1PRSEX, B1PF7A, B1PB1, B1PTSEI, B1PB19, B1PA6A, B1PA37, B1PA38A,
          B1PA39, B1SA11W, B1SA11Z,B1SA62A, B1SA62B, B1SA62C, B1SA62D, B1SA62E, B1SA62F, 
          B1SA62G, B1SA62H, B1SA62I, B1SA62J, B1SPWBA2, B1SPWBE2, B1SPWBG2, B1SPWBR2, B1SPWBU2, B1SPWBS2,
          B1SMASTE, B1SCONST, B1SCTRL, B1SESTEE, B1SINTER, B1SINDEP,
@@ -80,18 +80,17 @@ m2_df =
 mke1_in_m2= intersect(m2_df$M2ID, mke1$M2ID)
 
 # ethnicity: BACR7A = 2
-# don't have cohabitation in mke1, impute as NA
 # BACA36, BACA37 are counterpart of B1PA37, B1PA38A
 mke1_to_add = 
   mke1 %>% 
   select(M2ID, BACRAGE, BACRSEX, BACB1, BACTSEI, BACB19, BACA6A, BACA36, BACA37, BACA39, BACAS11W,
          BACAS11Z, BACAS62A, BACAS62B, BACAS62C, BACAS62D, BACAS62E, BACAS62F, BACAS62G, BACAS62H,
-         BACAS62I, BACAS62J,BASPWBA2, BASPWBE2, BASPWBG2, BASPWBR2, BASPWBU2, BASPWBS2,
+         BACAS62I, BACAS62J, BASPWBA2, BASPWBE2, BASPWBG2, BASPWBR2, BASPWBU2, BASPWBS2,
          BASMASTE, BASCONST, BASCTRL, BASESTEE, BASINTER, BASINDEP, BASAGENC, BASAGREE,
          BASEXTRA, BASNEURO, BASCONS1) %>% 
   filter(M2ID %in% mke1_in_m2) %>% 
-  mutate(BACR7A = 2, BACPARTN = NA) %>%  # added two more columns
-  select(M2ID, BACRAGE, BACRSEX, BACR7A, BACB1, BACTSEI, BACB19, BACPARTN, everything())
+  mutate(BACR7A = 2) %>%  # added two more columns
+  select(M2ID, BACRAGE, BACRSEX, BACR7A, everything())
 
 # fill in data
 for (i in 1:(length(mke1_to_add)-1)){
@@ -112,7 +111,7 @@ m2_df =
   mutate(B1PB19 = ifelse(B1PB19 == 1, 1, 0))
 
 # resilience factors missing investigation
-a = m2_df[,c(1,2,31:47)]
+a = m2_df[,c(1,2,30:46)]
 
 a[!complete.cases(a), ] %>% 
   filter(M2ID %in% mke1_in_m2) # missing data entries are all from the milwaukee sample
@@ -252,7 +251,21 @@ M3: The inconsistency checker has 4 values (5 combinations): -7, -1, 0, and 1. T
 m2_df %>% 
   select_if(function(x) any(is.na(x))) %>% 
   summarise_each(funs(sum(is.na(.))))
+missing_id = a[!complete.cases(a), ] %>% 
+  filter(M2ID %in% mke1_in_m2) %>% 
+  pull(M2ID)
+
+m2_df %>% 
+  filter(is.na(B1PPARTN)) %>% 
+  filter(M2ID %in% missing_id)
+# no cohabitation, no those 7 subjects
+m2_df = m2_df %>% 
+  filter(!(M2ID %in% missing_id))
+
+write.csv(m2_df, "./data/m2_df.csv")
 ```
+
+
 
 
 
@@ -368,5 +381,12 @@ m2_df %>%
 
 High correlation between marital status and cohabitation, among the drug use variables (`B1SA62A - J`), among the CTQ score variables (`B4QCT_EA`, `B4QCT_EN`, `B4QCT_MD`, `B4QCT_PA`, `B4QCT_PN`, `B4QCT_SA`).
 
+
+
+
+# Model building 
+```{r}
+
+```
 
 
