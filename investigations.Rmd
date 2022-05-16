@@ -11,6 +11,7 @@ library(lubridate)
 library(patchwork)
 library(caret)
 library(GGally)
+library(nlme)
 library(lme4)
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 theme_set(theme_minimal() + theme(legend.position = "bottom") + theme(plot.title = element_text(hjust = 0.5)))
@@ -109,16 +110,6 @@ tibble(
 ) %>% 
   knitr::kable(caption = "Invalid counts - Resilience Factor Part 2")
 
-# 1106
-#m2p1_selected %>% 
-#  filter(M2ID %in% m2_df$M2ID) %>% 
-#  select(M2ID, B1SINTER) 
-
-# 129
-#mke1_to_add %>% 
-#  filter(M2ID %in% m2_df$M2ID) %>% 
-#  select(BASINDEP) %>% 
-#  unique()
 ```
 
 ```{r}
@@ -127,14 +118,81 @@ invalid_all = c(invalid_dep, invalid_ctq, invalid_cov, invalid_res_1, invalid_re
 ```
 ```{r}
 # further investigation
-#invalid_all[duplicated(invalid_all)]
 table(invalid_all) %>% 
   as.tibble() %>% 
   arrange(desc(n))
 ```
-# Modeling
-right now I just
+
+## SES and Spouse SES Investigation
+For now, I'm thinking about impute those missing numbers with their spouse's SES, if any. First, investigate: how many people have their spouse's SES filled (out of 352)
 ```{r}
-#lme (frequency ~ gender + attitude, random = ~1 | subject,  data = m2_df, method='REML') 
+m2_df %>% 
+  filter(B1PTSEI == 999) %>% 
+  select(M2ID, M2FAMNUM, B1PTSEI, B1PTSEIS) %>% 
+  mutate(nul = ifelse(B1PTSEIS == 999, 1, 0)) %>% 
+  group_by(nul) %>% 
+  summarize(n = n())
+```
+(content:references:ses)= 
+### imputation
+
+Out of 352 missing, 129 of them still don't have the spouse SES while 223 of them did. Maybe we can impute them using the median/mean of their subgroups. 
+```{r label=ses}
+# if use the above-mentioned imputation
+m2_df_tend = m2_df # new dataset to prevent data contamination
+
+with_sps = 
+  m2_df %>% 
+  filter(B1PTSEI == 999) %>% 
+  select(M2ID, M2FAMNUM, B1PTSEI, B1PTSEIS) %>% 
+  filter(B1PTSEIS != 999) %>% 
+  pull(M2ID)
+m2_df_tend[m2_df_tend$M2ID %in% with_sps, which(colnames(m2_df_tend) == "B1PTSEI")] = m2_df_tend[m2_df_tend$M2ID %in% with_sps, which(colnames(m2_df_tend) == "B1PTSEIS")]
+
+# without spouse people, impute with subgroups - sex, education, race
+wo_sps = 
+  m2_df %>% 
+  filter(B1PTSEI == 999) %>% 
+  select(M2ID, M2FAMNUM, B1PTSEI, B1PTSEIS) %>% 
+  filter(B1PTSEIS == 999) %>% 
+  pull(M2ID)
+  
+# function for imputation
+impute = function(obs){
+  sex = as.numeric(obs[9])
+  edu = as.numeric(obs[11])
+  race = as.numeric(obs[10])
+  sub_mean = m2_df_tend %>% 
+    filter(B1PRSEX == sex & B1PB1 == edu & B1PF7A == race & B1PTSEI != 999) %>% 
+    pull(B1PTSEI) %>% 
+    mean()
+  return(sub_mean)
+}
+
+# begin row-by-row imputation
+for (id in wo_sps){
+  obs = m2_df_tend[m2_df_tend$M2ID == id, ]
+  sub_mean = impute(obs)
+  m2_df_tend[m2_df_tend$M2ID == id, which(colnames(m2_df_tend) == "B1PTSEI")] = sub_mean
+}
+```
+
+
+# Modeling
+right now I just completely filter out all the observations with at least one invalid feature
+```{r eval=F}
+m2_df_no_inval = 
+  m2_df %>% 
+  filter(!(M2ID %in% unique(invalid_all)))
+
+# random intercept for each family
+ctqs = c("B4QCT_EA", "B4QCT_EN", "B4QCT_MD", "B4QCT_PA", "B4QCT_PN", "B4QCT_SA")
+for (ctq in ctqs){
+  lme(B3TCOMPZ3 ~ parse(text = ctq)[[1]], random = ~1 | M2FAMNUM,  data = m2_df_no_inval, method='REML')
+}
+
+
+lmm1 = lme(B3TCOMPZ3 ~ B4QCT_MD, random = ~1 | M2FAMNUM,  data = m2_df_no_inval, method='REML') 
+summary(lmm1)
 ```
 

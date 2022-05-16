@@ -31,7 +31,13 @@ Paula Wu
 2.  Stroke inconsistency double-check (M2 and M3)
 3.  Smoking inconsistency check and data imputation
 4.  (All) Resilience Factors and missing entries
-5.  
+
+### May.16 Updates
+
+1.  Alcohol consumption added
+2.  Imputation done for SES, please [click
+    here](https://github.com/paulawucu/MIDUS/blob/main/investigations.md)
+    for more information
 
 ## MIDUS 2
 
@@ -47,19 +53,17 @@ m2_df =
 # milwaukee sample information filled in
 mke1_in_m2= intersect(m2_df$M2ID, mke1$M2ID)
 
-# ethnicity: BACR7A = 2
-# don't have cohabitation in mke1, impute as NA
-# BACA36, BACA37 are counterpart of B1PA37, B1PA38A
 mke1_to_add = 
   mke1 %>% 
-  select(M2ID, BACRAGE, BACRSEX, BACB1, BACTSEI, BACB19, BACA6A, BACA36, BACA37, BACA39, BACAS11W,
+  select(M2ID, BACRAGE, BACRSEX, BACB1, BACTSEI, BACTSEIS, 
+         BACB19, BACA6A, BACA36, BACA37, BACA39, BACAS11W, # BACA36, BACA37 are counterpart of B1PA37, B1PA38A
          BACAS11Z, BACAS62A, BACAS62B, BACAS62C, BACAS62D, BACAS62E, BACAS62F, BACAS62G, BACAS62H,
-         BACAS62I, BACAS62J,BASPWBA2, BASPWBE2, BASPWBG2, BASPWBR2, BASPWBU2, BASPWBS2,
+         BACAS62I, BACAS62J, BASPWBA2, BASPWBE2, BASPWBG2, BASPWBR2, BASPWBU2, BASPWBS2,
          BASMASTE, BASCONST, BASCTRL, BASESTEE, BASINTER, BASINDEP, BASAGENC, BASAGREE,
          BASEXTRA, BASNEURO, BASCONS1) %>% 
   filter(M2ID %in% mke1_in_m2) %>% 
-  mutate(BACR7A = 2, BACPARTN = NA) %>%  # added two more columns
-  select(M2ID, BACRAGE, BACRSEX, BACR7A, BACB1, BACTSEI, BACB19, BACPARTN, everything())
+  mutate(BACR7A = 2) %>%  # ethnicity: BACR7A = 2
+  select(M2ID, BACRAGE, BACRSEX, BACR7A, everything())
 
 # fill in data
 for (i in 1:(length(mke1_to_add)-1)){
@@ -83,7 +87,7 @@ m2_df =
 a = m2_df[,c(1,2,31:47)]
 
 a[!complete.cases(a), ] %>% 
-  filter(M2ID %in% mke1_in_m2) # missing data entries are all from the milwaukee sample
+  filter(M2ID %in% mke1_in_m2) # missing data entries are all from the milwaukee sample, will trim them later
 ```
 
     ## # A tibble: 7 × 19
@@ -168,6 +172,40 @@ former_smokers = m2_df %>%
   pull(M2ID)
 
 m2_df[m2_df$M2ID %in% former_smokers, which(colnames(m2_df) == "B1PA39")] = 2
+```
+
+``` r
+# Alcohol, reproducing Saumya's code
+
+# sex: 1 for Male, 2 for female
+m2_df = 
+  m2_df %>% 
+  mutate(
+    B4ALCOH = case_when(
+      B4H33 == 2 & B4H38 == 6 ~ "former_light/abs",
+      B4H33 == 2 & B4H38 == 5 & B4H40 <= 1 ~ "former_light/abs",
+      B4H33 == 2 & B4H38 == 4 & B4H40 >= 8 & B1PRSEX == 1 ~ "former_heavy", 
+      B4H33 == 2 & B4H38 == 4 & B4H40 >= 4 & B1PRSEX == 2 ~ "former_heavy",
+      B4H33 == 2 & B4H38 == 3 & B4H40 >= 3.5 & B1PRSEX == 1 ~ "former_heavy",
+      B4H33 == 2 & B4H38 == 3 & B4H40 >= 2 & B1PRSEX == 2 ~ "former_heavy",
+      B4H33 == 2 & B4H38 == 2 & B4H40 >= 2.5 & B1PRSEX == 1 ~ "former_heavy",
+      B4H33 == 2 & B4H38 == 2 & B4H40 >= 1.2 & B1PRSEX == 2 ~ "former_heavy",
+      B4H33 == 2 & B4H38 == 1 & B4H40 >= 2 & B1PRSEX == 1 ~ "former_heavy",
+      B4H33 == 2 & B4H38 == 1 & B4H40 > 1 & B1PRSEX == 2 ~ "former_heavy",
+      B4H33 == 2 ~ "former_moderate",
+      B4H33 == 1 & B4H38 == 6 ~ "current_light",
+      B4H33 == 1 & B4H38 == 5 & B4H40 <= 1 ~ "current_light",
+      B4H33 == 1 & B4H38 == 4 & B4H40 >= 8 & B1PRSEX == 1 ~ "current_heavy", 
+      B4H33 == 1 & B4H38 == 4 & B4H40 >= 4 & B1PRSEX == 2 ~ "current_heavy",
+      B4H33 == 1 & B4H38 == 3 & B4H40 >= 3.5 & B1PRSEX == 1 ~ "current_heavy",
+      B4H33 == 1 & B4H38 == 3 & B4H40 >= 2 & B1PRSEX == 2 ~ "current_heavy",
+      B4H33 == 1 & B4H38 == 2 & B4H40 >= 2.5 & B1PRSEX == 1 ~ "current_heavy",
+      B4H33 == 1 & B4H38 == 2 & B4H40 >= 1.2 & B1PRSEX == 2 ~ "current_heavy",
+      B4H33 == 1 & B4H38 == 1 & B4H40 >= 2 & B1PRSEX == 1 ~ "current_heavy",
+      B4H33 == 1 & B4H38 == 1 & B4H40 > 1 & B1PRSEX == 2 ~ "current_heavy",
+      B4H33 == 1 ~ "current_moderate"
+    )
+  )
 ```
 
 ——- Done MIDUS 2 dataset integration and imputations ——- Stroke
@@ -309,13 +347,25 @@ m2_df %>%
   summarise_each(funs(sum(is.na(.))))
 ```
 
-    ## # A tibble: 1 × 18
-    ##   B1PPARTN B1SPWBA2 B1SPWBE2 B1SPWBG2 B1SPWBR2 B1SPWBU2 B1SPWBS2 B1SMASTE
+    ## # A tibble: 1 × 17
+    ##   B1SPWBA2 B1SPWBE2 B1SPWBG2 B1SPWBR2 B1SPWBU2 B1SPWBS2 B1SMASTE B1SCONST
     ##      <int>    <int>    <int>    <int>    <int>    <int>    <int>    <int>
-    ## 1      136        7        7        7        7        7        7        7
-    ## # … with 10 more variables: B1SCONST <int>, B1SCTRL <int>, B1SESTEE <int>,
-    ## #   B1SINTER <int>, B1SINDEP <int>, B1SAGENC <int>, B1SAGREE <int>,
-    ## #   B1SEXTRA <int>, B1SNEURO <int>, B1SCONS1 <int>
+    ## 1        7        7        7        7        7        7        7        7
+    ## # … with 9 more variables: B1SCTRL <int>, B1SESTEE <int>, B1SINTER <int>,
+    ## #   B1SINDEP <int>, B1SAGENC <int>, B1SAGREE <int>, B1SEXTRA <int>,
+    ## #   B1SNEURO <int>, B1SCONS1 <int>
+
+``` r
+missing_id = a[!complete.cases(a), ] %>% 
+  filter(M2ID %in% mke1_in_m2) %>% 
+  pull(M2ID)
+
+# no cohabitation, no those 7 subjects
+m2_df = m2_df %>% 
+  filter(!(M2ID %in% missing_id))
+
+#write.csv(m2_df, "./data/m2_df.csv")
+```
 
 ### Univariate Analysis
 
@@ -341,7 +391,7 @@ m2_df_graph = m2_df %>%
 
 # M2 continuous
 m2_df_graph_cont = m2_df_graph %>% 
-  select(-c(B1PRSEX, B1PF7A, B1PB19, B1PPARTN, B1PA6A, B1SA11W, B1SA11Z, B1SA62A, B1SA62B, 
+  select(-c(B1PRSEX, B1PF7A, B1PB19, B1PA6A, B1SA11W, B1SA11Z, B1SA62A, B1SA62B, 
             B1SA62C, B1SA62D, B1SA62E, B1SA62F, B1SA62G, B1SA62H, B1SA62I, B1SA62J, B3PIDATE_MO, B3PIDATE_YR, B1PA39))
 
 # Cognition composite score
@@ -351,7 +401,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "Composite Scores"),
             type = c("p", "smooth"), layout = c(3,4))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-11-1.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-12-1.png" width="90%" />
 
 ``` r
 # Episodic Memory
@@ -361,7 +411,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "Episodic Memory"),
             type = c("p", "smooth"), layout = c(3,4))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-11-2.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-12-2.png" width="90%" />
 
 ``` r
 # Executive Function
@@ -371,7 +421,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "Executive Function")
             type = c("p", "smooth"), layout = c(3,4))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-11-3.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-12-3.png" width="90%" />
 
 ``` r
 # M2 categorical
@@ -386,7 +436,7 @@ Covariates or confounding?
 # graphs
 # select variables that I thought are potential confounders
 m2_df_cov = m2_df_graph %>% 
-  select(B3TCOMPZ3, B3TEMZ3, B3TEFZ3, B1PAGE_M2, B1PRSEX, B1PF7A, B1PB1, B1PTSEI, B1PB19, B1PPARTN, B1PA39, B4HMETMW, B1SA11W, 
+  select(B3TCOMPZ3, B3TEMZ3, B3TEFZ3, B1PAGE_M2, B1PRSEX, B1PF7A, B1PB1, B1PTSEI, B1PB19,B1PA39, B4HMETMW, B1SA11W, 
          B1SA62A, B1SA62B, B1SA62C, B1SA62D, B1SA62E, B1SA62F, 
          B1SA62G, B1SA62H, B1SA62I, B1SA62J, B1SPWBA2, B1SPWBE2, B1SPWBG2, B1SPWBR2, B1SPWBU2, B1SPWBS2, B4QCT_EA, B4QCT_EN,
          B4QCT_MD, B4QCT_PA, B4QCT_PN, B4QCT_SA)
@@ -400,7 +450,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "B4QCT_EA"),
             type = c("p", "smooth"), layout = c(3,7))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-12-1.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-13-1.png" width="90%" />
 
 ``` r
 # B4QCT_EN
@@ -410,7 +460,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "B4QCT_EN"),
             type = c("p", "smooth"), layout = c(3,7))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-12-2.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-13-2.png" width="90%" />
 
 ``` r
 # B4QCT_MD
@@ -420,7 +470,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "B4QCT_MD"),
             type = c("p", "smooth"), layout = c(3,7))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-12-3.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-13-3.png" width="90%" />
 
 ``` r
 # B4QCT_PA
@@ -430,7 +480,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "B4QCT_PA"),
             type = c("p", "smooth"), layout = c(3,7))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-12-4.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-13-4.png" width="90%" />
 
 ``` r
 # B4QCT_PN
@@ -440,7 +490,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "B4QCT_PN"),
             type = c("p", "smooth"), layout = c(3,7))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-12-5.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-13-5.png" width="90%" />
 
 ``` r
 # B4QCT_SA
@@ -450,7 +500,7 @@ featurePlot(x_feature, y, plot = "scatter", labels = c("", "B4QCT_SA"),
             type = c("p", "smooth"), layout = c(3,7))
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-12-6.png" width="90%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-13-6.png" width="90%" />
 
 Correlation Plot of independent variables in M2 dataset
 (i.e. `B3TCOMPZ3`,`B3TEMZ3`, `B3TEFZ3` are not included in the graph)
@@ -461,9 +511,11 @@ m2_df %>%
   ggcorr(label=TRUE, hjust = 0.9, layout.exp = 2, label_size = 3, label_round = 2)
 ```
 
-<img src="updates_files/figure-gfm/unnamed-chunk-13-1.png" width="100%" />
+<img src="updates_files/figure-gfm/unnamed-chunk-14-1.png" width="100%" />
 
 High correlation between marital status and cohabitation, among the drug
 use variables (`B1SA62A - J`), among the CTQ score variables
 (`B4QCT_EA`, `B4QCT_EN`, `B4QCT_MD`, `B4QCT_PA`, `B4QCT_PN`,
 `B4QCT_SA`).
+
+# Model building

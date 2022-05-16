@@ -25,7 +25,10 @@ output: github_document
 2. Stroke inconsistency double-check (M2 and M3)
 3. Smoking inconsistency check and data imputation
 4. (All) Resilience Factors and missing entries
-5. 
+
+### May.16 Updates
+1. Alcohol consumption added
+2. Imputation done for SES, please [click here](https://github.com/paulawucu/MIDUS/blob/main/investigations.md) for more information
 
 ```{r setup, include=FALSE}
 library(tidyverse)
@@ -49,15 +52,14 @@ mke2 = read_tsv("./data/ICPSR_37120/DS0001/37120-0001-Data-REST.tsv")
 ```
 
 ```{r, echo=FALSE}
-# added B1PA37, B1PA38A for smoking consistency checking
 m2p1_selected = m2p1 %>% 
-  select(M2ID, B1PAGE_M2, B1PRSEX, B1PF7A, B1PB1, B1PTSEI, B1PB19, B1PA6A, B1PA37, B1PA38A,
+  select(M2ID, B1PAGE_M2, B1PRSEX, B1PF7A, B1PB1, B1PTSEI, B1PTSEIS, B1PB19, B1PA6A, B1PA37, B1PA38A,
          B1PA39, B1SA11W, B1SA11Z,B1SA62A, B1SA62B, B1SA62C, B1SA62D, B1SA62E, B1SA62F, 
          B1SA62G, B1SA62H, B1SA62I, B1SA62J, B1SPWBA2, B1SPWBE2, B1SPWBG2, B1SPWBR2, B1SPWBU2, B1SPWBS2,
          B1SMASTE, B1SCONST, B1SCTRL, B1SESTEE, B1SINTER, B1SINDEP,
          B1SAGENC, B1SAGREE, B1SEXTRA, B1SNEURO, B1SCONS1)
 m2p4_selected = m2p4 %>% 
-  select(M2ID, B4QCT_EA, B4QCT_EN, B4QCT_MD, B4QCT_PA, B4QCT_PN, B4QCT_SA, B4HMETMW)
+  select(M2ID, B4QCT_EA, B4QCT_EN, B4QCT_MD, B4QCT_PA, B4QCT_PN, B4QCT_SA, B4HMETMW, B4H33, B4H34, B4H36, B4H38, B4H40)
 m2p3_selected = m2p3 %>% 
   select(M2ID, M2FAMNUM, B3TCOMPZ3, B3TEMZ3, B3TEFZ3, B3PIDATE_MO, B3PIDATE_YR)
 m3p1_selected = m3p1 %>% 
@@ -79,17 +81,16 @@ m2_df =
 # milwaukee sample information filled in
 mke1_in_m2= intersect(m2_df$M2ID, mke1$M2ID)
 
-# ethnicity: BACR7A = 2
-# BACA36, BACA37 are counterpart of B1PA37, B1PA38A
 mke1_to_add = 
   mke1 %>% 
-  select(M2ID, BACRAGE, BACRSEX, BACB1, BACTSEI, BACB19, BACA6A, BACA36, BACA37, BACA39, BACAS11W,
+  select(M2ID, BACRAGE, BACRSEX, BACB1, BACTSEI, BACTSEIS, 
+         BACB19, BACA6A, BACA36, BACA37, BACA39, BACAS11W, # BACA36, BACA37 are counterpart of B1PA37, B1PA38A
          BACAS11Z, BACAS62A, BACAS62B, BACAS62C, BACAS62D, BACAS62E, BACAS62F, BACAS62G, BACAS62H,
          BACAS62I, BACAS62J, BASPWBA2, BASPWBE2, BASPWBG2, BASPWBR2, BASPWBU2, BASPWBS2,
          BASMASTE, BASCONST, BASCTRL, BASESTEE, BASINTER, BASINDEP, BASAGENC, BASAGREE,
          BASEXTRA, BASNEURO, BASCONS1) %>% 
   filter(M2ID %in% mke1_in_m2) %>% 
-  mutate(BACR7A = 2) %>%  # added two more columns
+  mutate(BACR7A = 2) %>%  # ethnicity: BACR7A = 2
   select(M2ID, BACRAGE, BACRSEX, BACR7A, everything())
 
 # fill in data
@@ -111,10 +112,10 @@ m2_df =
   mutate(B1PB19 = ifelse(B1PB19 == 1, 1, 0))
 
 # resilience factors missing investigation
-a = m2_df[,c(1,2,30:46)]
+a = m2_df[,c(1,2,31:47)]
 
 a[!complete.cases(a), ] %>% 
-  filter(M2ID %in% mke1_in_m2) # missing data entries are all from the milwaukee sample
+  filter(M2ID %in% mke1_in_m2) # missing data entries are all from the milwaukee sample, will trim them later
 ```
 
 ```{r}
@@ -160,6 +161,41 @@ former_smokers = m2_df %>%
 
 m2_df[m2_df$M2ID %in% former_smokers, which(colnames(m2_df) == "B1PA39")] = 2
 ```
+
+```{r}
+# Alcohol, reproducing Saumya's code
+
+# sex: 1 for Male, 2 for female
+m2_df = 
+  m2_df %>% 
+  mutate(
+    B4ALCOH = case_when(
+      B4H33 == 2 & B4H38 == 6 ~ "former_light/abs",
+      B4H33 == 2 & B4H38 == 5 & B4H40 <= 1 ~ "former_light/abs",
+      B4H33 == 2 & B4H38 == 4 & B4H40 >= 8 & B1PRSEX == 1 ~ "former_heavy", 
+      B4H33 == 2 & B4H38 == 4 & B4H40 >= 4 & B1PRSEX == 2 ~ "former_heavy",
+      B4H33 == 2 & B4H38 == 3 & B4H40 >= 3.5 & B1PRSEX == 1 ~ "former_heavy",
+      B4H33 == 2 & B4H38 == 3 & B4H40 >= 2 & B1PRSEX == 2 ~ "former_heavy",
+      B4H33 == 2 & B4H38 == 2 & B4H40 >= 2.5 & B1PRSEX == 1 ~ "former_heavy",
+      B4H33 == 2 & B4H38 == 2 & B4H40 >= 1.2 & B1PRSEX == 2 ~ "former_heavy",
+      B4H33 == 2 & B4H38 == 1 & B4H40 >= 2 & B1PRSEX == 1 ~ "former_heavy",
+      B4H33 == 2 & B4H38 == 1 & B4H40 > 1 & B1PRSEX == 2 ~ "former_heavy",
+      B4H33 == 2 ~ "former_moderate",
+      B4H33 == 1 & B4H38 == 6 ~ "current_light",
+      B4H33 == 1 & B4H38 == 5 & B4H40 <= 1 ~ "current_light",
+      B4H33 == 1 & B4H38 == 4 & B4H40 >= 8 & B1PRSEX == 1 ~ "current_heavy", 
+      B4H33 == 1 & B4H38 == 4 & B4H40 >= 4 & B1PRSEX == 2 ~ "current_heavy",
+      B4H33 == 1 & B4H38 == 3 & B4H40 >= 3.5 & B1PRSEX == 1 ~ "current_heavy",
+      B4H33 == 1 & B4H38 == 3 & B4H40 >= 2 & B1PRSEX == 2 ~ "current_heavy",
+      B4H33 == 1 & B4H38 == 2 & B4H40 >= 2.5 & B1PRSEX == 1 ~ "current_heavy",
+      B4H33 == 1 & B4H38 == 2 & B4H40 >= 1.2 & B1PRSEX == 2 ~ "current_heavy",
+      B4H33 == 1 & B4H38 == 1 & B4H40 >= 2 & B1PRSEX == 1 ~ "current_heavy",
+      B4H33 == 1 & B4H38 == 1 & B4H40 > 1 & B1PRSEX == 2 ~ "current_heavy",
+      B4H33 == 1 ~ "current_moderate"
+    )
+  )
+```
+
 
 
 ------- Done MIDUS 2 dataset integration and imputations -------
@@ -255,14 +291,11 @@ missing_id = a[!complete.cases(a), ] %>%
   filter(M2ID %in% mke1_in_m2) %>% 
   pull(M2ID)
 
-m2_df %>% 
-  filter(is.na(B1PPARTN)) %>% 
-  filter(M2ID %in% missing_id)
 # no cohabitation, no those 7 subjects
 m2_df = m2_df %>% 
   filter(!(M2ID %in% missing_id))
 
-write.csv(m2_df, "./data/m2_df.csv")
+#write.csv(m2_df, "./data/m2_df.csv")
 ```
 
 
@@ -292,7 +325,7 @@ m2_df_graph = m2_df %>%
 
 # M2 continuous
 m2_df_graph_cont = m2_df_graph %>% 
-  select(-c(B1PRSEX, B1PF7A, B1PB19, B1PPARTN, B1PA6A, B1SA11W, B1SA11Z, B1SA62A, B1SA62B, 
+  select(-c(B1PRSEX, B1PF7A, B1PB19, B1PA6A, B1SA11W, B1SA11Z, B1SA62A, B1SA62B, 
             B1SA62C, B1SA62D, B1SA62E, B1SA62F, B1SA62G, B1SA62H, B1SA62I, B1SA62J, B3PIDATE_MO, B3PIDATE_YR, B1PA39))
 
 # Cognition composite score
@@ -326,7 +359,7 @@ Covariates or confounding?
 # graphs
 # select variables that I thought are potential confounders
 m2_df_cov = m2_df_graph %>% 
-  select(B3TCOMPZ3, B3TEMZ3, B3TEFZ3, B1PAGE_M2, B1PRSEX, B1PF7A, B1PB1, B1PTSEI, B1PB19, B1PPARTN, B1PA39, B4HMETMW, B1SA11W, 
+  select(B3TCOMPZ3, B3TEMZ3, B3TEFZ3, B1PAGE_M2, B1PRSEX, B1PF7A, B1PB1, B1PTSEI, B1PB19,B1PA39, B4HMETMW, B1SA11W, 
          B1SA62A, B1SA62B, B1SA62C, B1SA62D, B1SA62E, B1SA62F, 
          B1SA62G, B1SA62H, B1SA62I, B1SA62J, B1SPWBA2, B1SPWBE2, B1SPWBG2, B1SPWBR2, B1SPWBU2, B1SPWBS2, B4QCT_EA, B4QCT_EN,
          B4QCT_MD, B4QCT_PA, B4QCT_PN, B4QCT_SA)
