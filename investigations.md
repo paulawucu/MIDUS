@@ -6,174 +6,67 @@ Paula Wu
 ``` r
 m2_df = 
   read_csv("./data/m2_df.csv") %>% 
-  select(-1)
+  select(-1) %>% 
+  filter(B3TCOMPZ3 != 8 & B3TEMZ3 != 8 & B3TEFZ3 != 8) %>% 
+  filter(B4QCT_SA != 98 & B4QCT_EN != 98 & B4QCT_MD != 8 & B4QCT_PN != 98 & B4QCT_EA != 98 & B4QCT_PA != 98)
 ```
 
-### Invalid investigation
+## SES and Spouse SES Investigation
+
+For now, I’m thinking about impute those missing numbers with their
+spouse’s SES, if any. First, investigate: how many people have their
+spouse’s SES filled (out of 352)
 
 ``` r
-# Dependent variable
-invalid_dep = 
+m2_df %>% 
+  filter(B1PTSEI == 999) %>% 
+  select(M2ID, M2FAMNUM, B1PTSEI, B1PTSEIS) %>% 
+  mutate(nul = ifelse(B1PTSEIS == 999, 1, 0)) %>% 
+  group_by(nul) %>% 
+  summarize(n = n())
+```
+
+    ## # A tibble: 2 × 2
+    ##     nul     n
+    ##   <dbl> <int>
+    ## 1     0   209
+    ## 2     1   125
+
+Out of 352 missing, 129 of them still don’t have the spouse SES while
+223 of them did.
+
+### imputation - Jun 2nd (final) version:
+
+Impute spouses’ SES for those who doesn’t have SES; for the rest use LM
+(education as predictor) for imputation
+
+``` r
+# for those whose spouse has a valid SES
+with_sps = 
   m2_df %>% 
-  filter(B3TCOMPZ3 == 8 | B3TEMZ3 == 8 | B3TEFZ3 == 8) %>% 
+  filter(B1PTSEI == 999) %>% 
+  select(M2ID, M2FAMNUM, B1PTSEI, B1PTSEIS) %>% 
+  filter(B1PTSEIS != 999) %>% 
+  pull(M2ID)
+m2_df[m2_df$M2ID %in% with_sps, which(colnames(m2_df) == "B1PTSEI")] = m2_df[m2_df$M2ID %in% with_sps, which(colnames(m2_df) == "B1PTSEIS")]
+
+# for those whose spouse doesn't have a valid SES, fit an LM 
+m2_df_lm = m2_df %>% 
+  select(B1PTSEI, B1PAGE_M2, B1PB1) %>% 
+  filter(B1PTSEI != 999 & B1PB1 != 97)
+lm_ses = lm(B1PTSEI ~ B1PB1, data = m2_df_lm)
+
+# prediction
+m2_pred_id = m2_df %>% 
+  filter(B1PTSEI == 999) %>% 
   pull(M2ID)
 
-tibble(
-  B3TCOMPZ3 = as.numeric(count(m2_df[m2_df$B3TCOMPZ3 == 8,])),
-  B3TEMZ3 = as.numeric(count(m2_df[m2_df$B3TEMZ3 == 8,])),
-  B3TEFZ3 = as.numeric(count(m2_df[m2_df$B3TEFZ3 == 8,]))
-) %>% 
-  knitr::kable(caption = "Invalid counts - Dependent Variable")
+for (i in m2_pred_id){
+  edu = m2_df[m2_df$M2ID == i, which(colnames(m2_df) == "B1PB1")]
+  pred_ses = predict(lm_ses, newdata = edu)
+  m2_df[m2_df$M2ID == i, which(colnames(m2_df) == "B1PTSEI")] = pred_ses
+}
 ```
-
-| B3TCOMPZ3 | B3TEMZ3 | B3TEFZ3 |
-|----------:|--------:|--------:|
-|        40 |       4 |       0 |
-
-Invalid counts - Dependent Variable
-
-``` r
-# CTQ scores
-invalid_ctq = 
-  m2_df %>% 
-  filter(B4QCT_SA == 98 | B4QCT_EN == 98 | B4QCT_MD == 8 | B4QCT_PN == 98 | B4QCT_EA == 98 | B4QCT_PA == 98) %>% 
-  pull(M2ID)
-
-tibble(
-  B4QCT_SA = as.numeric(count(m2_df[m2_df$B4QCT_SA == 98,])),
-  B4QCT_EN = as.numeric(count(m2_df[m2_df$B4QCT_EN == 98,])),
-  B4QCT_MD = as.numeric(count(m2_df[m2_df$B4QCT_MD == 8,])),
-  B4QCT_PN = as.numeric(count(m2_df[m2_df$B4QCT_PN == 98,])),
-  B4QCT_EA = as.numeric(count(m2_df[m2_df$B4QCT_EA == 98,])),
-  B4QCT_PA = as.numeric(count(m2_df[m2_df$B4QCT_PA == 98,]))
-)%>% 
-  knitr::kable(caption = "Invalid counts - CTQ scores")
-```
-
-| B4QCT_SA | B4QCT_EN | B4QCT_MD | B4QCT_PN | B4QCT_EA | B4QCT_PA |
-|---------:|---------:|---------:|---------:|---------:|---------:|
-|        7 |        3 |        2 |        2 |        3 |        2 |
-
-Invalid counts - CTQ scores
-
-``` r
-# Covariates
-# B1SA11W no invalid, 
-invalid_cov = 
-  m2_df %>% 
-  filter(B1PTSEI == 999 | B4HMETMW == 99998 | B1PB1 == 97 | B1PF7A >= 7 | B1SA62A == 8 | B1SA62B == 8 | B1SA62C == 8 | B1SA62D == 8 | B1SA62E == 8 | B1SA62F == 8 | B1SA62G == 8 | B1SA62H == 8 | B1SA62I == 8 | B1SA62J == 8) %>%
-  pull(M2ID)
-
-tibble(
-  B1PTSEI = as.numeric(count(m2_df[m2_df$B1PTSEI == 999,])),
-  B4HMETMW = as.numeric(count(m2_df[m2_df$B4HMETMW == 99998,])),
-  B1PB1 = as.numeric(count(m2_df[m2_df$B1PB1 == 97,])),
-  B1PF7A = as.numeric(count(m2_df[m2_df$B1PF7A >= 7,])),
-  B1SA62A = as.numeric(count(m2_df[m2_df$B1SA62A == 8,])),
-  B1SA62B = as.numeric(count(m2_df[m2_df$B1SA62B == 8,])),
-  B1SA62C = as.numeric(count(m2_df[m2_df$B1SA62C == 8,])),
-  B1SA62D = as.numeric(count(m2_df[m2_df$B1SA62D == 8,])),
-  B1SA62E = as.numeric(count(m2_df[m2_df$B1SA62E == 8,])),
-  B1SA62F = as.numeric(count(m2_df[m2_df$B1SA62F == 8,])),
-  B1SA62G = as.numeric(count(m2_df[m2_df$B1SA62G == 8,])),
-  B1SA62H = as.numeric(count(m2_df[m2_df$B1SA62H == 8,])),
-  B1SA62I = as.numeric(count(m2_df[m2_df$B1SA62I == 8,])),
-  B1SA62J = as.numeric(count(m2_df[m2_df$B1SA62J == 8,]))
-)%>% 
-  knitr::kable(caption = "Invalid counts - Covariates")
-```
-
-| B1PTSEI | B4HMETMW | B1PB1 | B1PF7A | B1SA62A | B1SA62B | B1SA62C | B1SA62D | B1SA62E | B1SA62F | B1SA62G | B1SA62H | B1SA62I | B1SA62J |
-|--------:|---------:|------:|-------:|--------:|--------:|--------:|--------:|--------:|--------:|--------:|--------:|--------:|--------:|
-|     352 |        5 |     3 |      2 |       3 |       3 |       4 |       3 |       4 |       6 |       4 |       3 |       3 |       4 |
-
-Invalid counts - Covariates
-
-``` r
-# Resilience factor part 1
-invalid_res_1 = 
-  m2_df %>% 
-  filter(B1SPWBA2 == 98 | B1SPWBE2 == 98 | B1SPWBG2 == 98 | B1SPWBR2 == 98 | B1SPWBU2 == 98 | B1SPWBS2 == 98) %>% 
-  pull(M2ID)
-
-
-tibble(
-  B1SPWBA2 = as.numeric(count(m2_df[m2_df$B1SPWBA2 == 98,])),
-  B1SPWBE2 = as.numeric(count(m2_df[m2_df$B1SPWBE2 == 98,])),
-  B1SPWBG2 = as.numeric(count(m2_df[m2_df$B1SPWBG2 == 98,])),
-  B1SPWBR2 = as.numeric(count(m2_df[m2_df$B1SPWBR2 == 98,])),
-  B1SPWBU2 = as.numeric(count(m2_df[m2_df$B1SPWBU2 == 98,])),
-  B1SPWBS2 = as.numeric(count(m2_df[m2_df$B1SPWBS2 == 98,])),
-) %>% 
-  knitr::kable(caption = "Invalid counts - Resilience Factor Part 1")
-```
-
-| B1SPWBA2 | B1SPWBE2 | B1SPWBG2 | B1SPWBR2 | B1SPWBU2 | B1SPWBS2 |
-|---------:|---------:|---------:|---------:|---------:|---------:|
-|        3 |        3 |        3 |        3 |        3 |        3 |
-
-Invalid counts - Resilience Factor Part 1
-
-``` r
-# Resilience factor part 2
-# B1SINTER, B1SINDEP both have two missing values (national and milwaukee samples has different criteria??)
-invalid_res_2 = 
-  m2_df %>% 
-  filter(B1SMASTE == 8 | B1SCONST == 8 | B1SCTRL == 8 | B1SESTEE == 98 | B1SINTER == 8 
-         | B1SINTER == 98 |B1SINDEP == 8 | B1SINDEP == 98 | B1SAGENC == 8 | B1SAGREE == 8 | 
-           B1SEXTRA == 8 | B1SNEURO == 8 | B1SCONS1 == 8 ) %>% 
-  pull(M2ID)
-
-tibble(
-  B1SMASTE = as.numeric(count(m2_df[m2_df$B1SMASTE == 8,])),
-  B1SCONST = as.numeric(count(m2_df[m2_df$B1SCONST == 8,])),
-  B1SCTRL = as.numeric(count(m2_df[m2_df$B1SCTRL == 8,])),
-  B1SESTEE = as.numeric(count(m2_df[m2_df$B1SESTEE == 98,])),
-  B1SINTER = as.numeric(count(m2_df[m2_df$B1SINTER == 8,])),
-  BASINTER = as.numeric(count(m2_df[m2_df$B1SINTER == 98,])),
-  B1SINDEP = as.numeric(count(m2_df[m2_df$B1SINDEP == 8,])),
-  BASINDEP = as.numeric(count(m2_df[m2_df$B1SINDEP == 98,])),
-  B1SAGENC = as.numeric(count(m2_df[m2_df$B1SAGENC == 8,])),
-  B1SAGREE = as.numeric(count(m2_df[m2_df$B1SAGREE == 8,])),
-  B1SEXTRA = as.numeric(count(m2_df[m2_df$B1SEXTRA == 8,])),
-  B1SNEURO = as.numeric(count(m2_df[m2_df$B1SNEURO == 8,])),
-  B1SCONS1 = as.numeric(count(m2_df[m2_df$B1SCONS1 == 8,]))
-) %>% 
-  knitr::kable(caption = "Invalid counts - Resilience Factor Part 2")
-```
-
-| B1SMASTE | B1SCONST | B1SCTRL | B1SESTEE | B1SINTER | BASINTER | B1SINDEP | BASINDEP | B1SAGENC | B1SAGREE | B1SEXTRA | B1SNEURO | B1SCONS1 |
-|---------:|---------:|--------:|---------:|---------:|---------:|---------:|---------:|---------:|---------:|---------:|---------:|---------:|
-|        5 |        5 |       5 |        7 |       15 |        2 |        6 |        2 |        6 |        5 |        5 |        5 |        5 |
-
-Invalid counts - Resilience Factor Part 2
-
-``` r
-# total number of subjects who have at least one invalid entry
-invalid_all = c(invalid_dep, invalid_ctq, invalid_cov, invalid_res_1, invalid_res_2)
-```
-
-``` r
-# further investigation
-table(invalid_all) %>% 
-  as.tibble() %>% 
-  arrange(desc(n))
-```
-
-    ## # A tibble: 406 × 2
-    ##    invalid_all     n
-    ##    <chr>       <int>
-    ##  1 11763           3
-    ##  2 12106           3
-    ##  3 16500           3
-    ##  4 10231           2
-    ##  5 10476           2
-    ##  6 10511           2
-    ##  7 10524           2
-    ##  8 10644           2
-    ##  9 12738           2
-    ## 10 13396           2
-    ## # … with 396 more rows
 
 ``` r
 m2_df_copy = m2_df
@@ -238,7 +131,7 @@ invalid_var = function(obs){
   return(invalid_str)
 }
 
-for (i in 1:1145){
+for (i in 1:1099){
   obs = m2_df_invalid[i,]
   invalid_str = invalid_var(obs)
   m2_df_invalid[i,2] = invalid_str
@@ -257,16 +150,15 @@ invalid_full %>%
 
 | invalid_count |   n |
 |--------------:|----:|
-|             1 | 358 |
-|             2 |  27 |
+|             1 |  24 |
+|             2 |   1 |
 |             3 |   5 |
-|             4 |   3 |
 |             5 |   3 |
-|             6 |   3 |
+|             6 |   1 |
 |             7 |   1 |
-|             8 |   1 |
-|            10 |   3 |
-|            18 |   2 |
+|             9 |   1 |
+|            10 |   2 |
+|            17 |   2 |
 
 ``` r
 invalid_full %>% 
@@ -275,197 +167,248 @@ invalid_full %>%
   stat_bin(aes(y=..count.., label=ifelse(..count..== 0,"",..count..)), geom="text", vjust= -0.5)
 ```
 
-![](investigations_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
-
-## SES and Spouse SES Investigation
-
-For now, I’m thinking about impute those missing numbers with their
-spouse’s SES, if any. First, investigate: how many people have their
-spouse’s SES filled (out of 352)
+![](investigations_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
 
 ``` r
-m2_df %>% 
-  filter(B1PTSEI == 999) %>% 
-  select(M2ID, M2FAMNUM, B1PTSEI, B1PTSEIS) %>% 
-  mutate(nul = ifelse(B1PTSEIS == 999, 1, 0)) %>% 
-  group_by(nul) %>% 
+a = m2_df %>% 
+  filter(!(B4QCT_EA == 98 | B4QCT_EN == 98 | B4QCT_SA == 98 | B4QCT_PA == 98 | B4QCT_PN == 98 | B4QCT_MD == 8 )) %>% 
+  mutate(ctq_total = B4QCT_EA + B4QCT_EN + B4QCT_SA + B4QCT_PA + B4QCT_PN + B4QCT_MD)
+
+mean_ctq = a %>% 
+  pull(ctq_total) %>% 
+  mean() %>% 
+  signif(6)
+
+median_ctq = a %>% 
+  pull(ctq_total) %>% 
+  median() %>% 
+  signif(6)
+
+a %>% 
+  ggplot(aes(x = ctq_total)) +
+  geom_density()+
+  geom_vline(xintercept=mean_ctq, size=0.5, color="red")+
+  geom_text(aes(x=mean_ctq + 5, label=paste0("Mean\n",mean_ctq), y=0.03), color = "red")+
+  geom_vline(xintercept=median_ctq, size=0.5, color="blue")+
+  geom_text(aes(x=median_ctq - 3, label=paste0("Median\n",median_ctq), y=0.03), color = "blue")+
+  theme(legend.position = "none")+
+  xlab("CTQ Total Score")+
+  ylab("Density")
+```
+
+![](investigations_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+
+``` r
+a %>% 
+  mutate(below_49 = ifelse(ctq_total <= 39, 1, 0)) %>% 
+  group_by(below_49) %>% 
   summarize(n = n())
 ```
 
     ## # A tibble: 2 × 2
-    ##     nul     n
-    ##   <dbl> <int>
-    ## 1     0   223
-    ## 2     1   129
-
-### imputation - May 19th version:
-
-Out of 352 missing, 129 of them still don’t have the spouse SES while
-223 of them did. Maybe we can impute them using the median/mean of their
-subgroups.
+    ##   below_49     n
+    ##      <dbl> <int>
+    ## 1        0   341
+    ## 2        1   758
 
 ``` r
-# if use the above-mentioned imputation
-m2_df_tend = m2_df # new dataset to prevent data contamination
+#ggsave("ctq_density.jpeg", width = 10, height = 7)
+```
 
-with_sps = 
-  m2_df %>% 
-  filter(B1PTSEI == 999) %>% 
-  select(M2ID, M2FAMNUM, B1PTSEI, B1PTSEIS) %>% 
-  filter(B1PTSEIS != 999) %>% 
-  pull(M2ID)
-m2_df_tend[m2_df_tend$M2ID %in% with_sps, which(colnames(m2_df_tend) == "B1PTSEI")] = m2_df_tend[m2_df_tend$M2ID %in% with_sps, which(colnames(m2_df_tend) == "B1PTSEIS")]
+## Invalid investigation, after imputation
 
-# without spouse people, impute with subgroups - sex, education, race
-wo_sps = 
-  m2_df %>% 
-  filter(B1PTSEI == 999) %>% 
-  select(M2ID, M2FAMNUM, B1PTSEI, B1PTSEIS) %>% 
-  filter(B1PTSEIS == 999) %>% 
-  pull(M2ID)
-  
-# function for imputation
-impute = function(obs){
-  sex = as.numeric(obs[9])
-  edu = as.numeric(obs[11])
-  race = as.numeric(obs[10])
-  sub_mean = m2_df_tend %>% 
-    filter(B1PRSEX == sex & B1PB1 == edu & B1PF7A == race & B1PTSEI != 999) %>% 
-    pull(B1PTSEI) %>% 
-    mean()
-  return(sub_mean)
+``` r
+m2_df_cc = m2_df %>% 
+  mutate(B3TCOMPZ3_ = ifelse(B3TCOMPZ3 == 8, 1, 0),
+         B3TEMZ3_ = ifelse(B3TEMZ3 == 8, 1, 0),
+         B3TEFZ3_ = ifelse(B3TEFZ3 == 8, 1, 0),
+         B4QCT_SA_ = ifelse(B4QCT_SA == 98, 1, 0),
+         B4QCT_EN_ = ifelse(B4QCT_EN == 98, 1, 0),
+         B4QCT_MD_ = ifelse(B4QCT_MD == 8, 1, 0),
+         B4QCT_PN_ = ifelse(B4QCT_PN == 98, 1, 0),
+         B4QCT_EA_ = ifelse(B4QCT_EA == 98, 1, 0),
+         B4QCT_PA_ = ifelse(B4QCT_PA == 98, 1, 0),
+         B1PTSEI_ = ifelse(B1PTSEI == 999, 1, 0),
+         B4HMETMW_ = ifelse(B4HMETMW == 99998, 1, 0),
+         B1PB1_ = ifelse(B1PB1 == 97, 1, 0),
+         B1PF7A_ = ifelse(B1PF7A >= 7, 1, 0),
+         B1SA62A_ = ifelse(B1SA62A == 8, 1, 0),
+         B1SA62B_ = ifelse(B1SA62B == 8, 1, 0),
+         B1SA62C_ = ifelse(B1SA62C == 8, 1, 0),
+         B1SA62D_ = ifelse(B1SA62D == 8, 1, 0),
+         B1SA62E_ = ifelse(B1SA62E == 8, 1, 0),
+         B1SA62F_ = ifelse(B1SA62F == 8, 1, 0),
+         B1SA62G_ = ifelse(B1SA62G == 8, 1, 0),
+         B1SA62H_ = ifelse(B1SA62H == 8, 1, 0),
+         B1SA62I_ = ifelse(B1SA62I == 8, 1, 0),
+         B1SA62J_ = ifelse(B1SA62J == 8, 1, 0),
+         B1SPWBA2_ = ifelse(B1SPWBA2 == 98, 1, 0),
+         B1SPWBE2_ = ifelse(B1SPWBE2 == 98, 1, 0),
+         B1SPWBG2_ = ifelse(B1SPWBG2 == 98, 1, 0),
+         B1SPWBR2_ = ifelse(B1SPWBR2 == 98, 1, 0),
+         B1SPWBU2_ = ifelse(B1SPWBU2 == 98, 1, 0),
+         B1SPWBS2_ = ifelse(B1SPWBS2 == 98, 1, 0),
+         B1SMASTE_ = ifelse(B1SMASTE == 8, 1, 0),
+         B1SCONST_ = ifelse(B1SCONST == 8, 1, 0),
+         B1SCTRL_ = ifelse(B1SCTRL == 8, 1, 0),
+         B1SESTEE_ = ifelse(B1SESTEE == 98, 1, 0),
+         B1SINTER_ = ifelse(B1SINTER == 8, 1, 0),
+         BASINTER_ = ifelse(B1SINTER == 98, 1, 0),
+         B1SINDEP_ = ifelse(B1SINDEP == 8, 1, 0),
+         BASINDEP_ = ifelse(B1SINDEP == 98, 1, 0),
+         B1SAGENC_ = ifelse(B1SAGENC == 8, 1, 0),
+         B1SAGREE_ = ifelse(B1SAGREE == 8, 1, 0),
+         B1SEXTRA_ = ifelse(B1SEXTRA == 8, 1, 0),
+         B1SNEURO_ = ifelse(B1SNEURO == 8, 1, 0),
+         B1SCONS1_ = ifelse(B1SCONS1 == 8, 1, 0),
+         invalid_ind = NA) %>% 
+  select(-c(2:60)) %>% 
+  select(M2ID, invalid_ind, everything()) %>% 
+  rename_at(.vars = vars(ends_with("_")),
+            .funs = funs(sub("_$", "", .)))
+for (i in 1:1099){
+  obs = m2_df_cc[i,]
+  invalid_str = invalid_var(obs)
+  m2_df_cc[i,2] = invalid_str
 }
+invalid_cc = 
+  m2_df_cc %>% 
+  select(M2ID, invalid_ind) %>% 
+  filter(!invalid_ind == "") %>% 
+  mutate(invalid_count = str_count(invalid_ind, pattern = ","))
 
-# begin row-by-row imputation
-for (id in wo_sps){
-  obs = m2_df_tend[m2_df_tend$M2ID == id, ]
-  sub_mean = impute(obs)
-  m2_df_tend[m2_df_tend$M2ID == id, which(colnames(m2_df_tend) == "B1PTSEI")] = sub_mean
-}
+# quick summary: invalid entries of each variable
+colSums(m2_df_cc[3:44])
 ```
+
+    ## B3TCOMPZ3   B3TEMZ3   B3TEFZ3  B4QCT_SA  B4QCT_EN  B4QCT_MD  B4QCT_PN  B4QCT_EA 
+    ##         0         0         0         0         0         0         0         0 
+    ##  B4QCT_PA   B1PTSEI  B4HMETMW     B1PB1    B1PF7A   B1SA62A   B1SA62B   B1SA62C 
+    ##         0         0         5         3         2         3         3         4 
+    ##   B1SA62D   B1SA62E   B1SA62F   B1SA62G   B1SA62H   B1SA62I   B1SA62J  B1SPWBA2 
+    ##         3         4         6         4         3         3         4         3 
+    ##  B1SPWBE2  B1SPWBG2  B1SPWBR2  B1SPWBU2  B1SPWBS2  B1SMASTE  B1SCONST   B1SCTRL 
+    ##         3         3         3         3         3         5         5         5 
+    ##  B1SESTEE  B1SINTER  BASINTER  B1SINDEP  BASINDEP  B1SAGENC  B1SAGREE  B1SEXTRA 
+    ##         6        12         2         4         2         6         5         5 
+    ##  B1SNEURO  B1SCONS1 
+    ##         5         5
 
 ``` r
-m2_df
+# quick summary: count of people for different numbers of invalid entries. Total: 40 subjects
+invalid_cc %>% 
+  group_by(invalid_count) %>% 
+  summarize(n = n()) %>% 
+  knitr::kable()
 ```
 
-    ## # A tibble: 1,145 × 60
-    ##     M2ID M2FAMNUM B3TCOMPZ3 B3TEMZ3 B3TEFZ3 B3PIDATE_MO B3PIDATE_YR B1PAGE_M2
-    ##    <dbl>    <dbl>     <dbl>   <dbl>   <dbl>       <dbl>       <dbl>     <dbl>
-    ##  1 10002   100001    -0.258  -1.24    0.221           9        2004        69
-    ##  2 10005   120803    -1.72   -0.415  -1.45            1        2005        80
-    ##  3 10019   100009     1.56    0.839   1.54            3        2004        51
-    ##  4 10040   100018     0.006   0.013  -0.25            2        2005        49
-    ##  5 10047   100022     0.577   0.411   0.596           7        2004        45
-    ##  6 10060   100028    -1.08   -1.07   -0.554           7        2004        58
-    ##  7 10061   100029     0.694  -0.872   0.569           7        2004        81
-    ##  8 10063   120288    -0.339  -0.415  -0.112           6        2004        48
-    ##  9 10079    10079    -0.418   1.50   -1.08            9        2005        49
-    ## 10 10080    10080    -1.09    1.52   -1.53            7        2005        40
-    ## # … with 1,135 more rows, and 52 more variables: B1PRSEX <dbl>, B1PF7A <dbl>,
-    ## #   B1PB1 <dbl>, B1PTSEI <dbl>, B1PTSEIS <dbl>, B1PB19 <dbl>, B1PA6A <dbl>,
-    ## #   B1PA37 <dbl>, B1PA38A <dbl>, B1PA39 <dbl>, B1SA11W <dbl>, B1SA11Z <dbl>,
-    ## #   B1SA62A <dbl>, B1SA62B <dbl>, B1SA62C <dbl>, B1SA62D <dbl>, B1SA62E <dbl>,
-    ## #   B1SA62F <dbl>, B1SA62G <dbl>, B1SA62H <dbl>, B1SA62I <dbl>, B1SA62J <dbl>,
-    ## #   B1SPWBA2 <dbl>, B1SPWBE2 <dbl>, B1SPWBG2 <dbl>, B1SPWBR2 <dbl>,
-    ## #   B1SPWBU2 <dbl>, B1SPWBS2 <dbl>, B1SMASTE <dbl>, B1SCONST <dbl>, …
-
-### imputation - May 26th version:
-
-Instead of imputing from each one’s subgroup, researchers usually use
-education-level to approximate individuals’ SES. Therefore, I fit a
-linear regression model with SES as the dep-var and education level as
-the indep-var.
+| invalid_count |   n |
+|--------------:|----:|
+|             1 |  24 |
+|             2 |   1 |
+|             3 |   5 |
+|             5 |   3 |
+|             6 |   1 |
+|             7 |   1 |
+|             9 |   1 |
+|            10 |   2 |
+|            17 |   2 |
 
 ``` r
-# use the above mentioned method, first fit a linear model
-m2_df_lm = m2_df %>% 
-  select(B1PTSEI, B1PAGE_M2, B1PB1) %>% 
-  filter(B1PTSEI != 999 & B1PB1 != 97)
-lm_ses = lm(B1PTSEI ~ B1PB1, data = m2_df_lm)
+m2_df = m2_df %>% 
+  select(-c(B3PIDATE_MO, B3PIDATE_YR, B1PTSEIS, B1PA37, B1PA38A, B1SA11Z, B4H33, B4H34, B4H36, B4H38, B4H40))
 ```
 
-There is one entry who has neither education level nor SES value. What
-should we do about this person?
+# M3 dataframe
 
 ``` r
-m2_df %>% 
-  filter(B1PTSEI == 999 & B1PB1 == 97)
+m2_id = m2_df %>% pull(M2ID)
+
+m3_df = 
+  read_csv("./data/m3_df.csv") %>% 
+  select(-1)
+
+# only 930 left, the rest 169 don't have M3 record
+full_df = 
+  inner_join(m2_df, m3_df, by = "M2ID") %>% 
+  select(-M2FAMNUM.y) %>% 
+  rename(M2FAMNUM = M2FAMNUM.x) %>% 
+  mutate(D3TCOMP = C3TCOMP - B3TCOMPZ3,
+         D3TEM = C3TEM - B3TEMZ3,
+         D3TEF = C3TEF - B3TEFZ3,
+         D1PB19 = C1PB19 - B1PB19,
+         B1PF7A = as.factor(B1PF7A))
 ```
-
-    ## # A tibble: 1 × 60
-    ##    M2ID M2FAMNUM B3TCOMPZ3 B3TEMZ3 B3TEFZ3 B3PIDATE_MO B3PIDATE_YR B1PAGE_M2
-    ##   <dbl>    <dbl>     <dbl>   <dbl>   <dbl>       <dbl>       <dbl>     <dbl>
-    ## 1 13166   101306     0.058   0.868  -0.166          12        2004        67
-    ## # … with 52 more variables: B1PRSEX <dbl>, B1PF7A <dbl>, B1PB1 <dbl>,
-    ## #   B1PTSEI <dbl>, B1PTSEIS <dbl>, B1PB19 <dbl>, B1PA6A <dbl>, B1PA37 <dbl>,
-    ## #   B1PA38A <dbl>, B1PA39 <dbl>, B1SA11W <dbl>, B1SA11Z <dbl>, B1SA62A <dbl>,
-    ## #   B1SA62B <dbl>, B1SA62C <dbl>, B1SA62D <dbl>, B1SA62E <dbl>, B1SA62F <dbl>,
-    ## #   B1SA62G <dbl>, B1SA62H <dbl>, B1SA62I <dbl>, B1SA62J <dbl>, B1SPWBA2 <dbl>,
-    ## #   B1SPWBE2 <dbl>, B1SPWBG2 <dbl>, B1SPWBR2 <dbl>, B1SPWBU2 <dbl>,
-    ## #   B1SPWBS2 <dbl>, B1SMASTE <dbl>, B1SCONST <dbl>, B1SCTRL <dbl>, …
-
-``` r
-# if use the above-mentioned imputation
-m2_df_tend = m2_df # new dataset to prevent data contamination, will merge to m2_df if method approved
-
-m2_pred_id = m2_df_tend %>% 
-  filter(B1PTSEI == 999) %>% 
-  filter(!M2ID == 13166) %>% 
-  pull(M2ID)
-
-for (i in m2_pred_id){
-  edu = m2_df_tend[m2_df_tend$M2ID == i, which(colnames(m2_df_tend) == "B1PB1")]
-  pred_ses = predict(lm_ses, newdata = edu)
-  m2_df_tend[m2_df_tend$M2ID == i, which(colnames(m2_df_tend) == "B1PTSEI")] = pred_ses
-}
-```
-
-I also considered other models, but it turns out that the original,
-single predictor model is good enough.
-
-``` r
-lm_ses_age = lm(B1PTSEI ~ B1PB1 + B1PAGE_M2, data = m2_df_lm)
-lm_ses_age_int = lm(B1PTSEI ~ B1PB1 + B1PAGE_M2 + B1PB1 * B1PAGE_M2, data = m2_df_lm)
-anova(lm_ses, lm_ses_age) # model 1 is better 
-```
-
-    ## Analysis of Variance Table
-    ## 
-    ## Model 1: B1PTSEI ~ B1PB1
-    ## Model 2: B1PTSEI ~ B1PB1 + B1PAGE_M2
-    ##   Res.Df    RSS Df Sum of Sq      F Pr(>F)
-    ## 1    789 113139                           
-    ## 2    788 113128  1    11.614 0.0809 0.7762
-
-``` r
-anova(lm_ses, lm_ses_age_int) # model 1 is better 
-```
-
-    ## Analysis of Variance Table
-    ## 
-    ## Model 1: B1PTSEI ~ B1PB1
-    ## Model 2: B1PTSEI ~ B1PB1 + B1PAGE_M2 + B1PB1 * B1PAGE_M2
-    ##   Res.Df    RSS Df Sum of Sq      F Pr(>F)
-    ## 1    789 113139                           
-    ## 2    787 112755  2    384.07 1.3404 0.2623
 
 # Modeling
 
 right now I just completely filter out all the observations with at
-least one invalid feature
+least one invalid feature, in total there are 40 of them, not a small
+number.
+
+first, maybe the most primitive one, here are a list of covariates
+
+-   ctq total score (for now)
+-   age
+-   sex
+-   race
+-   (imputed) SES
+-   changes in marital status
+-   
 
 ``` r
-m2_df_no_inval = 
-  m2_df %>% 
-  filter(!(M2ID %in% unique(invalid_all)))
+invalid_cc_id = invalid_cc %>% 
+  pull(M2ID) %>% 
+  unique()
 
-# random intercept for each family
-ctqs = c("B4QCT_EA", "B4QCT_EN", "B4QCT_MD", "B4QCT_PA", "B4QCT_PN", "B4QCT_SA")
-for (ctq in ctqs){
-  lme(B3TCOMPZ3 ~ parse(text = ctq)[[1]], random = ~1 | M2FAMNUM,  data = m2_df_no_inval, method='REML')
-}
+full_df_no_invalid = full_df %>% 
+  mutate(ctq_total = B4QCT_EA + B4QCT_EN + B4QCT_SA + B4QCT_PA + B4QCT_PN + B4QCT_MD) %>% 
+  filter(!(M2ID %in% invalid_cc_id))
 
 
-lmm1 = lme(B3TCOMPZ3 ~ B4QCT_MD, random = ~1 | M2FAMNUM,  data = m2_df_no_inval, method='REML') 
+lmm1 = lme(D3TEM ~ ctq_total + B1PAGE_M2 + B1PTSEI + B1PF7A + D1PB19, random = ~1 | M2FAMNUM, data = full_df_no_invalid) 
 summary(lmm1)
 ```
+
+    ## Linear mixed-effects model fit by REML
+    ##   Data: full_df_no_invalid 
+    ##       AIC      BIC    logLik
+    ##   2580.65 2633.316 -1279.325
+    ## 
+    ## Random effects:
+    ##  Formula: ~1 | M2FAMNUM
+    ##         (Intercept)  Residual
+    ## StdDev:   0.0855605 0.9872631
+    ## 
+    ## Fixed effects:  D3TEM ~ ctq_total + B1PAGE_M2 + B1PTSEI + B1PF7A + D1PB19 
+    ##                  Value Std.Error  DF    t-value p-value
+    ## (Intercept)  0.7222119 0.2399295 787  3.0101010  0.0027
+    ## ctq_total   -0.0068320 0.0024618 100 -2.7752155  0.0066
+    ## B1PAGE_M2   -0.0075551 0.0031225 100 -2.4195570  0.0173
+    ## B1PTSEI     -0.0041071 0.0024522 100 -1.6748429  0.0971
+    ## B1PF7A2      0.0372267 0.1069158 787  0.3481871  0.7278
+    ## B1PF7A3      0.8212424 0.3051674 100  2.6911215  0.0083
+    ## B1PF7A4     -0.2117376 0.7024439 787 -0.3014299  0.7632
+    ## B1PF7A6      0.3226358 0.2433150 100  1.3260003  0.1879
+    ## D1PB19       0.0538481 0.0892903 100  0.6030675  0.5478
+    ##  Correlation: 
+    ##           (Intr) ctq_tt B1PAGE B1PTSE B1PF7A2 B1PF7A3 B1PF7A4 B1PF7A6
+    ## ctq_total -0.521                                                     
+    ## B1PAGE_M2 -0.768  0.112                                              
+    ## B1PTSEI   -0.520  0.124  0.039                                       
+    ## B1PF7A2   -0.184 -0.055  0.098  0.191                                
+    ## B1PF7A3   -0.005 -0.138  0.062 -0.005  0.056                         
+    ## B1PF7A4    0.013 -0.016  0.008 -0.045  0.011   0.008                 
+    ## B1PF7A6   -0.048 -0.014  0.039  0.006  0.057   0.022   0.008         
+    ## D1PB19    -0.016 -0.020  0.084 -0.026 -0.017   0.043  -0.006  -0.020 
+    ## 
+    ## Standardized Within-Group Residuals:
+    ##         Min          Q1         Med          Q3         Max 
+    ## -3.34585789 -0.55652987 -0.03619954  0.51062063  9.11828953 
+    ## 
+    ## Number of Observations: 896
+    ## Number of Groups: 790
+
+# PCA of the modifiers
+
+…

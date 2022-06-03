@@ -294,8 +294,12 @@ missing_id = a[!complete.cases(a), ] %>%
 # no cohabitation, no those 7 subjects
 m2_df = m2_df %>% 
   filter(!(M2ID %in% missing_id))
+m3_df = 
+  m3_df %>% 
+  mutate(C1PB19 = ifelse(C1PB19 == 1, 1, 0))
 
 #write.csv(m2_df, "./data/m2_df.csv")
+#write.csv(m3_df, "./data/m3_df.csv")
 ```
 
 
