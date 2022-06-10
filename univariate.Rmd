@@ -1,0 +1,46 @@
+---
+title: "univariate"
+author: "Paula Wu"
+date: "6/9/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(patchwork)
+library(caret)
+library(GGally)
+library(nlme)
+library(lme4)
+library(stringr)
+library(stargazer)
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+theme_set(theme_minimal() + theme(legend.position = "bottom") + theme(plot.title = element_text(hjust = 0.5)))
+```
+```{r, results='asis'}
+full_df_no_invalid = read.csv("./data/full_df.csv") %>% 
+  select(-1)
+
+# 1 for white, 2 for non-white
+full_df_lm = full_df_no_invalid %>% 
+  mutate(B1PF7A = ifelse(as.numeric(B1PF7A) != 1, 2, as.numeric(B1PF7A)),
+         B1PF7A = as.factor(B1PF7A))
+
+d_comp_lm = lm(D3TCOMP ~ B1PAGE_M2 + B1PRSEX + B1PF7A + B1PB1 + B1PTSEI + D1PB19, data = full_df_lm)
+d_em_lm = lm(D3TEM ~ B1PAGE_M2 + B1PRSEX + B1PF7A + B1PB1 + B1PTSEI + D1PB19, data = full_df_lm)
+d_ef_lm = lm(D3TEF ~ B1PAGE_M2 + B1PRSEX + B1PF7A + B1PB1 + B1PTSEI + D1PB19, data = full_df_lm)
+ctq_lm = lm(ctq_total ~ B1PAGE_M2 + B1PRSEX + B1PF7A + B1PB1 + B1PTSEI + D1PB19, data = full_df_lm)
+stargazer(d_comp_lm,d_em_lm, d_ef_lm, ctq_lm,
+  type = 'latex',
+  header = FALSE,
+  #title = "Results of 5 Regression Models",
+#  column.labels = c("Model 1", "Model 2", "Model 3", "Model 4", "Model 5"),
+  # colnames = FALSE,
+  # model.numbers = FALSE,
+  # dep.var.caption = " ",
+   keep.stat = c("rsq")
+  # notes.align = "l",
+  )
+```
+

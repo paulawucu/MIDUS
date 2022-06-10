@@ -13,7 +13,9 @@ library(caret)
 library(GGally)
 library(nlme)
 library(lme4)
+library(gee)
 library(stringr)
+library(stargazer)
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 theme_set(theme_minimal() + theme(legend.position = "bottom") + theme(plot.title = element_text(hjust = 0.5)))
 ```
@@ -23,12 +25,20 @@ m2_df =
   read_csv("./data/m2_df.csv") %>% 
   select(-1) %>% 
   filter(B3TCOMPZ3 != 8 & B3TEMZ3 != 8 & B3TEFZ3 != 8) %>% 
-  filter(B4QCT_SA != 98 & B4QCT_EN != 98 & B4QCT_MD != 8 & B4QCT_PN != 98 & B4QCT_EA != 98 & B4QCT_PA != 98)
+  filter(B4QCT_SA != 98 & B4QCT_EN != 98 & B4QCT_MD != 8 & B4QCT_PN != 98 & B4QCT_EA != 98 & B4QCT_PA != 98) %>% 
+  select(-c(37:47))
+
+#m2_df = read_csv("./data/m2_df.csv") %>% 
+#  select(-1) %>% 
+#  filter(!(B3TCOMPZ3 == 8 | B3TEMZ3 == 8 | B3TEFZ3 == 8)) %>% 
+#  filter(!(B4QCT_SA == 98 | B4QCT_EN == 98 | B4QCT_MD == 8 | B4QCT_PN == 98 | B4QCT_EA == 98 | B4QCT_PA == 98)) %>% 
+#  select(-c(37:47))
+
 ```
 
 
 ## SES and Spouse SES Investigation
-For now, I'm thinking about impute those missing numbers with their spouse's SES, if any. First, investigate: how many people have their spouse's SES filled (out of 352)
+For now, I'm thinking about impute those missing numbers with their spouse's SES, if any. First, investigate: how many people have their spouse's SES filled (out of 334)
 ```{r}
 m2_df %>% 
   filter(B1PTSEI == 999) %>% 
@@ -37,7 +47,7 @@ m2_df %>%
   group_by(nul) %>% 
   summarize(n = n())
 ```
-Out of 352 missing, 129 of them still don't have the spouse SES while 223 of them did. 
+Out of 334 missing, 125 of them still don't have the spouse SES while 209 of them did. 
 
 ### imputation - Jun 2nd (final) version:
 Impute spouses' SES for those who doesn't have SES; for the rest use LM (education as predictor) for imputation
@@ -58,6 +68,7 @@ m2_df_lm = m2_df %>%
   filter(B1PTSEI != 999 & B1PB1 != 97)
 lm_ses = lm(B1PTSEI ~ B1PB1, data = m2_df_lm)
 
+
 # prediction
 m2_pred_id = m2_df %>% 
   filter(B1PTSEI == 999) %>% 
@@ -70,7 +81,7 @@ for (i in m2_pred_id){
 }
 ```
 
-```{r}
+```{r eval=FALSE}
 m2_df_copy = m2_df
 m2_df_invalid = 
   m2_df_copy %>% 
@@ -122,16 +133,6 @@ m2_df_invalid =
   rename_at(.vars = vars(ends_with("_")),
             .funs = funs(sub("_$", "", .)))
 
-invalid_var = function(obs){
-  invalid_str = ""
-  for (i in 3:44){
-    cell = as.numeric(obs[i])
-    if(cell == 1){
-      invalid_str = paste0(invalid_str, colnames(obs)[i], sep = ", ")
-    }
-  }
-  return(invalid_str)
-}
 
 for (i in 1:1099){
   obs = m2_df_invalid[i,]
@@ -190,16 +191,7 @@ a %>%
 ## Invalid investigation, after imputation
 ```{r}
 m2_df_cc = m2_df %>% 
-  mutate(B3TCOMPZ3_ = ifelse(B3TCOMPZ3 == 8, 1, 0),
-         B3TEMZ3_ = ifelse(B3TEMZ3 == 8, 1, 0),
-         B3TEFZ3_ = ifelse(B3TEFZ3 == 8, 1, 0),
-         B4QCT_SA_ = ifelse(B4QCT_SA == 98, 1, 0),
-         B4QCT_EN_ = ifelse(B4QCT_EN == 98, 1, 0),
-         B4QCT_MD_ = ifelse(B4QCT_MD == 8, 1, 0),
-         B4QCT_PN_ = ifelse(B4QCT_PN == 98, 1, 0),
-         B4QCT_EA_ = ifelse(B4QCT_EA == 98, 1, 0),
-         B4QCT_PA_ = ifelse(B4QCT_PA == 98, 1, 0),
-         B1PTSEI_ = ifelse(B1PTSEI == 999, 1, 0),
+  mutate(B1PTSEI_ = ifelse(B1PTSEI == 999, 1, 0),
          B4HMETMW_ = ifelse(B4HMETMW == 99998, 1, 0),
          B1PB1_ = ifelse(B1PB1 == 97, 1, 0),
          B1PF7A_ = ifelse(B1PF7A >= 7, 1, 0),
@@ -219,24 +211,22 @@ m2_df_cc = m2_df %>%
          B1SPWBR2_ = ifelse(B1SPWBR2 == 98, 1, 0),
          B1SPWBU2_ = ifelse(B1SPWBU2 == 98, 1, 0),
          B1SPWBS2_ = ifelse(B1SPWBS2 == 98, 1, 0),
-         B1SMASTE_ = ifelse(B1SMASTE == 8, 1, 0),
-         B1SCONST_ = ifelse(B1SCONST == 8, 1, 0),
-         B1SCTRL_ = ifelse(B1SCTRL == 8, 1, 0),
-         B1SESTEE_ = ifelse(B1SESTEE == 98, 1, 0),
-         B1SINTER_ = ifelse(B1SINTER == 8, 1, 0),
-         BASINTER_ = ifelse(B1SINTER == 98, 1, 0),
-         B1SINDEP_ = ifelse(B1SINDEP == 8, 1, 0),
-         BASINDEP_ = ifelse(B1SINDEP == 98, 1, 0),
-         B1SAGENC_ = ifelse(B1SAGENC == 8, 1, 0),
-         B1SAGREE_ = ifelse(B1SAGREE == 8, 1, 0),
-         B1SEXTRA_ = ifelse(B1SEXTRA == 8, 1, 0),
-         B1SNEURO_ = ifelse(B1SNEURO == 8, 1, 0),
-         B1SCONS1_ = ifelse(B1SCONS1 == 8, 1, 0),
          invalid_ind = NA) %>% 
-  select(-c(2:60)) %>% 
+  select(-c(2:49)) %>% 
   select(M2ID, invalid_ind, everything()) %>% 
   rename_at(.vars = vars(ends_with("_")),
             .funs = funs(sub("_$", "", .)))
+
+invalid_var = function(obs){
+  invalid_str = ""
+  for (i in 3:22){
+    cell = as.numeric(obs[i])
+    if(cell == 1){
+      invalid_str = paste0(invalid_str, colnames(obs)[i], sep = ", ")
+    }
+  }
+  return(invalid_str)
+}
 for (i in 1:1099){
   obs = m2_df_cc[i,]
   invalid_str = invalid_var(obs)
@@ -249,73 +239,210 @@ invalid_cc =
   mutate(invalid_count = str_count(invalid_ind, pattern = ","))
 
 # quick summary: invalid entries of each variable
-colSums(m2_df_cc[3:44])
+colSums(m2_df_cc[3:22])
 
 # quick summary: count of people for different numbers of invalid entries. Total: 40 subjects
 invalid_cc %>% 
   group_by(invalid_count) %>% 
   summarize(n = n()) %>% 
+  bind_rows(summarise_all(., ~if(is.numeric(.)) sum(.) else "Total")) %>% 
+  mutate(invalid_count = ifelse(row_number() == 6, "Total", invalid_count)) %>% 
   knitr::kable()
 ```
 
 ```{r}
+# deselect unnecessary variables, deselect invalid entries
+invalid_cc_id = invalid_cc %>% 
+  pull(M2ID) %>% 
+  unique()
+
 m2_df = m2_df %>% 
-  select(-c(B3PIDATE_MO, B3PIDATE_YR, B1PTSEIS, B1PA37, B1PA38A, B1SA11Z, B4H33, B4H34, B4H36, B4H38, B4H40))
+  select(-c(B3PIDATE_MO, B3PIDATE_YR, B1PTSEIS, B1PA37, B1PA38A, B1SA11Z, B4H33, B4H34, B4H36, B4H38, B4H40)) %>% 
+  filter(!(M2ID %in% invalid_cc_id))
+  
 ```
 
 # M3 dataframe
 ```{r}
 m2_id = m2_df %>% pull(M2ID)
+length(m2_id)
 
 m3_df = 
   read_csv("./data/m3_df.csv") %>% 
   select(-1)
 
-# only 930 left, the rest 169 don't have M3 record
+
+# only 911 left after joining, the rest 165 don't have M3 record
+# 868 left after filtering out invalid entries
 full_df = 
   inner_join(m2_df, m3_df, by = "M2ID") %>% 
   select(-M2FAMNUM.y) %>% 
-  rename(M2FAMNUM = M2FAMNUM.x) %>% 
+  rename(M2FAMNUM = M2FAMNUM.x) %>%
+  filter(C3TCOMP != 8 & C3TEM != 8) %>% 
   mutate(D3TCOMP = C3TCOMP - B3TCOMPZ3,
          D3TEM = C3TEM - B3TEMZ3,
          D3TEF = C3TEF - B3TEFZ3,
          D1PB19 = C1PB19 - B1PB19,
-         B1PF7A = as.factor(B1PF7A))
+         B1PF7A = as.factor(B1PF7A),
+         B1PA39 = as.factor(B1PA39))
+```
+
+
+# Univariate Analysis
+
+### Demographic information of subjects by MIDUS study
+Table is displayed in another latex file
+```{r eval=FALSE}
+m2_df_demog = m2_df %>% 
+  mutate(ctq_total = B4QCT_EA + B4QCT_EN + B4QCT_SA + B4QCT_PA + B4QCT_PN + B4QCT_MD) %>% 
+  select(B3TCOMPZ3, B3TEMZ3, B3TEFZ3, ctq_total, B1PAGE_M2, B1PRSEX, B1PF7A, B1PB1, B1PTSEI, B1PB19, B4HMETMW, B1SA11W, B1PA6A)
+
+a = skimr::skim(m2_df_demog)
+summary(m2_df_demog)
+m2_df_demog %>% 
+  group_by(B1PF7A) %>% 
+  summarize(n = n())
+```
+
+### Univariate Analysis of Cognition, CTQ total
+```{r}
+full_df_no_invalid = full_df %>% 
+  mutate(ctq_total = B4QCT_EA + B4QCT_EN + B4QCT_SA + B4QCT_PA + B4QCT_PN + B4QCT_MD,
+         B1PRSEX = as.factor(B1PRSEX),
+         B4ALCOH = factor(B4ALCOH, levels = c("former_light/abs", "former_moderate", "former_heavy", "current_light", "current_moderate", "current_heavy")),
+         D1PB19 = factor(D1PB19, levels = c(-1,0,1)),
+         B1PF7A = ifelse(as.numeric(B1PF7A) != 1, 2, as.numeric(B1PF7A)),
+         B1PF7A = as.factor(B1PF7A)
+  ) %>% 
+   mutate_each_(funs(scale(.)), c(6,10,14:30, 37))
+
+#write.csv(full_df_no_invalid, "./data/full_df.csv")
 ```
 
 
 # Modeling
-right now I just completely filter out all the observations with at least one invalid feature, in total there are 40 of them, not a small number.
 
+I completely filter out all the observations with at least one invalid feature, in total there are 23 of them, which is an arbitrarily small number. 
 
-first, maybe the most primitive one, here are a list of covariates
+first, fit the model with a list of covariates
 
-* ctq total score (for now)
+* ctq total score
 * age
 * sex
 * race
+* education 
 * (imputed) SES
 * changes in marital status
-* 
-
+* changes in stroke
+* smoking, drug use, alcohol consumption
 
 ```{r}
-invalid_cc_id = invalid_cc %>% 
-  pull(M2ID) %>% 
-  unique()
-
-full_df_no_invalid = full_df %>% 
-  mutate(ctq_total = B4QCT_EA + B4QCT_EN + B4QCT_SA + B4QCT_PA + B4QCT_PN + B4QCT_MD) %>% 
-  filter(!(M2ID %in% invalid_cc_id))
-
-
-lmm1 = lme(D3TEM ~ ctq_total + B1PAGE_M2 + B1PTSEI + B1PF7A + D1PB19, random = ~1 | M2FAMNUM, data = full_df_no_invalid) 
-summary(lmm1)
-
+# just showing one example
+lmm_base = lme(D3TCOMP~ ctq_total + B3TCOMPZ3, random = ~1 | M2FAMNUM, data = full_df_no_invalid)
+summary(lmm_base)
+plot(lmm_base)
 ```
 
 
-# PCA of the modifiers
 
-...
+```{r}
+lmm1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "REML") 
+summary(lmm1)
+#anova(lmm1)
+plot(lmm1)
+
+
+lmm2 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "REML") 
+summary(lmm2)
+plot(lmm2)
+
+lmm3 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "REML") 
+summary(lmm3)
+plot(lmm3)
+
+# dependent variable normally distributed
+full_df_no_invalid %>% 
+  ggplot(aes(x = D3TCOMP)) + 
+  geom_density()
+
+```
+
+```{r}
+full_df_no_invalid %>% 
+  ggplot(aes(x = B1PAGE_M2, y = C3TCOMP)) + 
+  geom_point() +
+  geom_smooth()
+
+full_df_no_invalid %>% 
+  ggplot(aes(x = B1PAGE_M2, y = B3TCOMPZ3)) + 
+  geom_point() +
+  geom_smooth()
+```
+```{r}
+lm1 = lm(D3TCOMP ~ ctq_total + B1PAGE_M2, data = full_df_no_invalid)
+summary(lm1)
+```
+
+```{r}
+full_df_no_invalid
+```
+
+
+# Modifiers
+
+* Stratified analysis can be one way to analyze the effect modification; however, as this analysis is usually done in a 2-by-2 table, we either need dichotomous variables (e.g. sex) or an arbitrary cutoff point for continuous variables. 
+
+
+The following part is to investigate whether adding an interaction term will improve the model fit. Use **likelihood-ratio test** for model comparison. Need to refit the model using maximum likelihood (ML). 
+
+Autonomy (B1SPWBA2)
+```{r}
+# Composite
+lmm1_1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm1_autonomy = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+anova(lmm1_1, lmm1_autonomy)
+
+
+# EM
+lmm2_1 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm2_autonomy = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+anova(lmm2_1, lmm2_autonomy)
+plot(lmm2_autonomy)
+
+# EF
+lmm3_1 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm3_autonomy = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+anova(lmm3_1, lmm3_autonomy)
+plot(lmm3_autonomy)
+
+```
+
+Environmental Mastery (B1SPWBE2)
+```{r}
+# Composite
+lmm1_2 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm1_em = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + ctq_total*B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+anova(lmm1_2, lmm1_em)
+
+# EM
+lmm2_2 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm2_em = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + ctq_total*B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+anova(lmm2_2, lmm2_em)
+plot(lmm2_autonomy)
+
+# EF
+lmm3_2 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm3_em = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+anova(lmm3_2, lmm3_em)
+```
+
+
+
+Personal Growth (B1SPWBG2)
+
+Positive Relations with Others (B1SPWBR2)
+
+Purpose in Life (B1SPWBU2)
+
+Self-Acceptance (B1SPWBS2)
 
