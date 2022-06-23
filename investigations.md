@@ -394,8 +394,9 @@ first, fit the model with a list of covariates
 -   changes in stroke
 -   smoking, drug use, alcohol consumption
 
+## Base Model
+
 ``` r
-# just showing one example
 lmm_base = lme(D3TCOMP~ ctq_total + B3TCOMPZ3, random = ~1 | M2FAMNUM, data = full_df_no_invalid)
 sumbase = summary(lmm_base)
 sumbase$tTable %>% 
@@ -414,8 +415,168 @@ plot(lmm_base)
 
 ![](investigations_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
+## Adding more covariates (LMM)
+
 ``` r
-lmm1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "REML") 
+# add sex, age, and race as covariates
+lmm1_pt1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
+summary(lmm1_pt1)$tTable %>% 
+  knitr::kable()
+```
+
+|             |      Value | Std.Error |  DF |     t-value |   p-value |
+|:------------|-----------:|----------:|----:|------------:|----------:|
+| (Intercept) |  0.0323253 | 0.0435553 | 766 |   0.7421677 | 0.4582132 |
+| ctq_total   | -0.0025568 | 0.0010280 |  96 |  -2.4871102 | 0.0146040 |
+| B3TCOMPZ3   | -0.4901240 | 0.0169475 |  96 | -28.9202072 | 0.0000000 |
+| B1PRSEX2    | -0.0023780 | 0.0282103 |  96 |  -0.0842937 | 0.9329984 |
+| B1PAGE_M2   | -0.1342360 | 0.0151448 |  96 |  -8.8634985 | 0.0000000 |
+| B1PF7A2     | -0.1387141 | 0.0407012 |  96 |  -3.4081110 | 0.0009574 |
+
+``` r
+lmm2_pt1 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
+summary(lmm2_pt1)$tTable %>% 
+  knitr::kable()
+```
+
+|             |      Value | Std.Error |  DF |     t-value |   p-value |
+|:------------|-----------:|----------:|----:|------------:|----------:|
+| (Intercept) | -0.0110431 | 0.0842777 | 766 |  -0.1310319 | 0.8957845 |
+| ctq_total   | -0.0062562 | 0.0020240 |  96 |  -3.0910197 | 0.0026107 |
+| B3TEMZ3     | -0.5439812 | 0.0327426 |  96 | -16.6138622 | 0.0000000 |
+| B1PRSEX2    |  0.4038902 | 0.0584751 |  96 |   6.9070462 | 0.0000000 |
+| B1PAGE_M2   | -0.1974845 | 0.0286004 |  96 |  -6.9049598 | 0.0000000 |
+| B1PF7A2     | -0.0832230 | 0.0767724 |  96 |  -1.0840228 | 0.2810697 |
+
+``` r
+lmm3_pt1 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
+summary(lmm3_pt1)$tTable %>% 
+  knitr::kable()
+```
+
+|             |      Value | Std.Error |  DF |     t-value |   p-value |
+|:------------|-----------:|----------:|----:|------------:|----------:|
+| (Intercept) | -0.1540560 | 0.0471201 | 766 |  -3.2694316 | 0.0011258 |
+| ctq_total   | -0.0002350 | 0.0010971 |  96 |  -0.2142177 | 0.8308316 |
+| B3TEFZ3     | -0.4388567 | 0.0189604 |  96 | -23.1459795 | 0.0000000 |
+| B1PRSEX2    | -0.0780092 | 0.0301108 |  96 |  -2.5907433 | 0.0110691 |
+| B1PAGE_M2   | -0.1314336 | 0.0161940 |  96 |  -8.1161906 | 0.0000000 |
+| B1PF7A2     | -0.1364545 | 0.0434412 |  96 |  -3.1411335 | 0.0022377 |
+
+``` r
+# add (on top of previous ones), SES, alcohol, smoking, change in stroke, exercise (MET), sleeping disorder etc. 
+lmm1_pt2 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
+summary(lmm1_pt2)$tTable %>% 
+  knitr::kable()
+```
+
+|                         |      Value | Std.Error |  DF |     t-value |   p-value |
+|:------------------------|-----------:|----------:|----:|------------:|----------:|
+| (Intercept)             | -0.0894421 | 0.0825154 | 766 |  -1.0839446 | 0.2787304 |
+| ctq_total               | -0.0019819 | 0.0010557 |  84 |  -1.8773302 | 0.0639439 |
+| B3TCOMPZ3               | -0.5104009 | 0.0174519 |  84 | -29.2462301 | 0.0000000 |
+| B1PRSEX2                |  0.0144374 | 0.0292183 |  84 |   0.4941204 | 0.6225108 |
+| B1PAGE_M2               | -0.1384139 | 0.0154263 |  84 |  -8.9725755 | 0.0000000 |
+| B1PF7A2                 | -0.1185768 | 0.0408957 |  84 |  -2.8994938 | 0.0047682 |
+| B1PTSEI                 |  0.0452470 | 0.0145322 |  84 |   3.1135706 | 0.0025275 |
+| B1PA392                 |  0.0297937 | 0.0442372 |  84 |   0.6734990 | 0.5024788 |
+| B1PA399                 |  0.0237843 | 0.0499942 |  84 |   0.4757416 | 0.6354934 |
+| B4ALCOHformer_moderate  |  0.0955072 | 0.0542975 |  84 |   1.7589622 | 0.0822255 |
+| B4ALCOHformer_heavy     |  0.0291056 | 0.0602683 |  84 |   0.4829334 | 0.6303993 |
+| B4ALCOHcurrent_light    |  0.0454265 | 0.0699543 |  84 |   0.6493737 | 0.5178686 |
+| B4ALCOHcurrent_moderate |  0.1158377 | 0.0453444 |  84 |   2.5546201 | 0.0124339 |
+| B4ALCOHcurrent_heavy    |  0.0163965 | 0.0471211 |  84 |   0.3479647 | 0.7287372 |
+| D1PB190                 |  0.0221368 | 0.0457861 |  84 |   0.4834827 | 0.6300110 |
+| D1PB191                 |  0.0377999 | 0.0783985 |  84 |   0.4821504 | 0.6309530 |
+| B4HMETMW                |  0.0208178 | 0.0136885 |  84 |   1.5208170 | 0.1320613 |
+| B1SA11W1                | -0.0995991 | 0.0449923 |  84 |  -2.2136930 | 0.0295602 |
+
+``` r
+lmm2_pt2 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
+summary(lmm2_pt2)$tTable %>% 
+  knitr::kable()
+```
+
+|                         |      Value | Std.Error |  DF |     t-value |   p-value |
+|:------------------------|-----------:|----------:|----:|------------:|----------:|
+| (Intercept)             | -0.3784578 | 0.1633792 | 766 |  -2.3164385 | 0.0207974 |
+| ctq_total               | -0.0056309 | 0.0020880 |  84 |  -2.6968158 | 0.0084575 |
+| B3TEMZ3                 | -0.5518073 | 0.0329674 |  84 | -16.7379851 | 0.0000000 |
+| B1PRSEX2                |  0.4157663 | 0.0605720 |  84 |   6.8639971 | 0.0000000 |
+| B1PAGE_M2               | -0.2072634 | 0.0292688 |  84 |  -7.0813749 | 0.0000000 |
+| B1PF7A2                 | -0.0398920 | 0.0779865 |  84 |  -0.5115246 | 0.6103259 |
+| B1PTSEI                 |  0.0434247 | 0.0282255 |  84 |   1.5384880 | 0.1276879 |
+| B1PA392                 |  0.1883973 | 0.0877091 |  84 |   2.1479792 | 0.0345956 |
+| B1PA399                 |  0.1348491 | 0.0990819 |  84 |   1.3609864 | 0.1771582 |
+| B4ALCOHformer_moderate  |  0.1250984 | 0.1076271 |  84 |   1.1623325 | 0.2483922 |
+| B4ALCOHformer_heavy     |  0.0459482 | 0.1194239 |  84 |   0.3847492 | 0.7013957 |
+| B4ALCOHcurrent_light    |  0.1988859 | 0.1387578 |  84 |   1.4333310 | 0.1554749 |
+| B4ALCOHcurrent_moderate |  0.1843870 | 0.0898520 |  84 |   2.0521196 | 0.0432719 |
+| B4ALCOHcurrent_heavy    | -0.0192515 | 0.0933698 |  84 |  -0.2061851 | 0.8371453 |
+| D1PB190                 |  0.1106887 | 0.0907180 |  84 |   1.2201402 | 0.2258262 |
+| D1PB191                 |  0.1162450 | 0.1555053 |  84 |   0.7475308 | 0.4568308 |
+| B4HMETMW                |  0.0538843 | 0.0271475 |  84 |   1.9848752 | 0.0504220 |
+| B1SA11W1                | -0.0094353 | 0.0891698 |  84 |  -0.1058123 | 0.9159836 |
+
+``` r
+lmm3_pt2 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
+summary(lmm3_pt2)$tTable %>% 
+  knitr::kable()
+```
+
+|                         |      Value | Std.Error |  DF |     t-value |   p-value |
+|:------------------------|-----------:|----------:|----:|------------:|----------:|
+| (Intercept)             | -0.1785301 | 0.0886674 | 766 |  -2.0134812 | 0.0444133 |
+| ctq_total               |  0.0003298 | 0.0011306 |  84 |   0.2917001 | 0.7712351 |
+| B3TEFZ3                 | -0.4563845 | 0.0195880 |  84 | -23.2991500 | 0.0000000 |
+| B1PRSEX2                | -0.0654735 | 0.0312283 |  84 |  -2.0966092 | 0.0390361 |
+| B1PAGE_M2               | -0.1315656 | 0.0165255 |  84 |  -7.9613625 | 0.0000000 |
+| B1PF7A2                 | -0.1209332 | 0.0438147 |  84 |  -2.7601044 | 0.0070928 |
+| B1PTSEI                 |  0.0442525 | 0.0155943 |  84 |   2.8377362 | 0.0056946 |
+| B1PA392                 |  0.0226628 | 0.0475322 |  84 |   0.4767887 | 0.6347506 |
+| B1PA399                 |  0.0425628 | 0.0537125 |  84 |   0.7924190 | 0.4303487 |
+| B4ALCOHformer_moderate  |  0.0663733 | 0.0582884 |  84 |   1.1387066 | 0.2580627 |
+| B4ALCOHformer_heavy     |  0.0278598 | 0.0647723 |  84 |   0.4301191 | 0.6682105 |
+| B4ALCOHcurrent_light    | -0.0498761 | 0.0751888 |  84 |  -0.6633447 | 0.5089262 |
+| B4ALCOHcurrent_moderate |  0.0578858 | 0.0487099 |  84 |   1.1883785 | 0.2380334 |
+| B4ALCOHcurrent_heavy    |  0.0177445 | 0.0505751 |  84 |   0.3508541 | 0.7265762 |
+| D1PB190                 | -0.0570631 | 0.0491835 |  84 |  -1.1602083 | 0.2492509 |
+| D1PB191                 |  0.0204925 | 0.0845206 |  84 |   0.2424555 | 0.8090183 |
+| B4HMETMW                |  0.0171245 | 0.0147340 |  84 |   1.1622474 | 0.2484265 |
+| B1SA11W1                | -0.0946411 | 0.0483204 |  84 |  -1.9586133 | 0.0534764 |
+
+``` r
+# adding education (one example)
+lmm1_edu = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PB1 + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
+summary(lmm1_edu)$tTable %>% 
+  knitr::kable()
+```
+
+|                         |      Value | Std.Error |  DF |     t-value |   p-value |
+|:------------------------|-----------:|----------:|----:|------------:|----------:|
+| (Intercept)             | -0.2396077 | 0.0956941 | 766 |  -2.5038918 | 0.0124905 |
+| ctq_total               | -0.0018115 | 0.0010527 |  83 |  -1.7208369 | 0.0890064 |
+| B3TCOMPZ3               | -0.5242938 | 0.0179226 |  83 | -29.2532359 | 0.0000000 |
+| B1PRSEX2                |  0.0215428 | 0.0291812 |  83 |   0.7382419 | 0.4624498 |
+| B1PAGE_M2               | -0.1385784 | 0.0153694 |  83 |  -9.0165007 | 0.0000000 |
+| B1PF7A2                 | -0.1195513 | 0.0407229 |  83 |  -2.9357235 | 0.0043039 |
+| B1PB1                   |  0.0209667 | 0.0068880 |  83 |   3.0439322 | 0.0031274 |
+| B1PTSEI                 |  0.0238225 | 0.0161037 |  83 |   1.4793179 | 0.1428409 |
+| B1PA392                 |  0.0167206 | 0.0442157 |  83 |   0.3781597 | 0.7062774 |
+| B1PA399                 |  0.0071851 | 0.0500297 |  83 |   0.1436158 | 0.8861520 |
+| B4ALCOHformer_moderate  |  0.0850514 | 0.0541438 |  83 |   1.5708421 | 0.1200239 |
+| B4ALCOHformer_heavy     |  0.0344304 | 0.0599909 |  83 |   0.5739276 | 0.5675688 |
+| B4ALCOHcurrent_light    |  0.0341492 | 0.0697016 |  83 |   0.4899345 | 0.6254728 |
+| B4ALCOHcurrent_moderate |  0.1094349 | 0.0451806 |  83 |   2.4221652 | 0.0176057 |
+| B4ALCOHcurrent_heavy    |  0.0145193 | 0.0469046 |  83 |   0.3095500 | 0.7576790 |
+| D1PB190                 |  0.0196876 | 0.0455640 |  83 |   0.4320877 | 0.6667981 |
+| D1PB191                 |  0.0261040 | 0.0780592 |  83 |   0.3344126 | 0.7389118 |
+| B4HMETMW                |  0.0216897 | 0.0136161 |  83 |   1.5929378 | 0.1149756 |
+| B1SA11W1                | -0.1003578 | 0.0447721 |  83 |  -2.2415276 | 0.0276608 |
+
+``` r
+# finally, adding all the indicators of drug use
+lmm1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 +  B1PRSEX + B1PTSEI + B1PF7A + B1PB1  + D1PB19 + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "REML") 
 sum1 = summary(lmm1)
 sum1$tTable %>% 
   knitr::kable()
@@ -427,12 +588,12 @@ sum1$tTable %>%
 | ctq_total               | -0.0016618 | 0.0010547 |  78 |  -1.5755775 | 0.1191707 |
 | B3TCOMPZ3               | -0.5250179 | 0.0179583 |  78 | -29.2353806 | 0.0000000 |
 | B1PAGE_M2               | -0.1389842 | 0.0154812 |  78 |  -8.9776205 | 0.0000000 |
-| B1PTSEI                 |  0.0267093 | 0.0160387 |  78 |   1.6652970 | 0.0998654 |
-| B1PB1                   |  0.0205971 | 0.0068772 |  78 |   2.9949881 | 0.0036769 |
-| B1PF7A2                 | -0.1169477 | 0.0409016 |  78 |  -2.8592447 | 0.0054451 |
-| D1PB190                 |  0.0155297 | 0.0456183 |  78 |   0.3404277 | 0.7344496 |
-| D1PB191                 |  0.0105624 | 0.0779940 |  78 |   0.1354260 | 0.8926240 |
 | B1PRSEX2                |  0.0251450 | 0.0293309 |  78 |   0.8572884 | 0.3939119 |
+| B1PTSEI                 |  0.0267093 | 0.0160387 |  78 |   1.6652970 | 0.0998654 |
+| B1PF7A2                 | -0.1169477 | 0.0409016 |  78 |  -2.8592447 | 0.0054451 |
+| B1PB1                   |  0.0205971 | 0.0068772 |  78 |   2.9949881 | 0.0036769 |
+| D1PB190                 |  0.0155297 | 0.0456183 |  78 |   0.3404277 | 0.7344496 |
+| D1PB191                 |  0.0105624 | 0.0779940 |  78 |   0.1354259 | 0.8926240 |
 | B1PA392                 |  0.0233698 | 0.0448795 |  78 |   0.5207228 | 0.6040350 |
 | B1PA399                 |  0.0041471 | 0.0506215 |  78 |   0.0819230 | 0.9349178 |
 | B4HMETMW                |  0.0213106 | 0.0135634 |  78 |   1.5711826 | 0.1201882 |
@@ -453,17 +614,11 @@ sum1$tTable %>%
 | B1SA62I1                | -1.1437278 | 0.4312839 | 762 |  -2.6519140 | 0.0081701 |
 
 ``` r
-plot(lmm1)
+unique(full_df_no_invalid$B1SA11W)
 ```
 
-![](investigations_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
-
-``` r
-cor(full_df_no_invalid$B1PB1, full_df_no_invalid$B1PTSEI)
-```
-
-    ##           [,1]
-    ## [1,] 0.5317444
+    ## [1] 0 1
+    ## Levels: 0 1
 
 ``` r
 lmm2 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "REML") 
@@ -504,12 +659,6 @@ sum2$tTable %>%
 | B1SA62I1                | -1.0182080 | 0.8578454 | 762 |  -1.1869365 | 0.2356226 |
 
 ``` r
-plot(lmm2)
-```
-
-![](investigations_files/figure-gfm/unnamed-chunk-12-2.png)<!-- -->
-
-``` r
 lmm3 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "REML") 
 sum3 = summary(lmm3)
 sum3$tTable %>% 
@@ -547,38 +696,25 @@ sum3$tTable %>%
 | B1SA62H1                |  0.3098117 | 0.1620538 | 762 |   1.9117826 | 0.0562789 |
 | B1SA62I1                | -1.6455820 | 0.4618251 | 762 |  -3.5632150 | 0.0003891 |
 
-``` r
-plot(lmm3)
-```
-
-![](investigations_files/figure-gfm/unnamed-chunk-12-3.png)<!-- -->
+Check model assumptions
 
 ``` r
-# dependent variable normally distributed
-full_df_no_invalid %>% 
-  ggplot(aes(x = D3TCOMP)) + 
-  geom_density()
+plot(lmm1, main = "Change in Composite Scores: resid vs. fitted")
 ```
 
-![](investigations_files/figure-gfm/unnamed-chunk-12-4.png)<!-- -->
+![](investigations_files/figure-gfm/unnamed-chunk-16-1.png)<!-- -->
 
 ``` r
-full_df_no_invalid %>% 
-  ggplot(aes(x = B1PAGE_M2, y = C3TCOMP)) + 
-  geom_point() +
-  geom_smooth()
+plot(lmm2, main = "Change in Episodic Memory: resid vs. fitted")
 ```
 
-![](investigations_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](investigations_files/figure-gfm/unnamed-chunk-16-2.png)<!-- -->
 
 ``` r
-full_df_no_invalid %>% 
-  ggplot(aes(x = B1PAGE_M2, y = B3TCOMPZ3)) + 
-  geom_point() +
-  geom_smooth()
+plot(lmm3, main = "Change in Executive Function: resid vs. fitted")
 ```
 
-![](investigations_files/figure-gfm/unnamed-chunk-13-2.png)<!-- -->
+![](investigations_files/figure-gfm/unnamed-chunk-16-3.png)<!-- -->
 
 # Modifiers
 

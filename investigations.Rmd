@@ -359,8 +359,8 @@ first, fit the model with a list of covariates
 * changes in stroke
 * smoking, drug use, alcohol consumption
 
+## Base Model
 ```{r}
-# just showing one example
 lmm_base = lme(D3TCOMP~ ctq_total + B3TCOMPZ3, random = ~1 | M2FAMNUM, data = full_df_no_invalid)
 sumbase = summary(lmm_base)
 sumbase$tTable %>% 
@@ -368,45 +368,69 @@ sumbase$tTable %>%
 plot(lmm_base)
 ```
 
+## Adding more covariates (LMM)
+```{r}
+# add sex, age, and race as covariates
+lmm1_pt1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
+summary(lmm1_pt1)$tTable %>% 
+  knitr::kable()
+
+lmm2_pt1 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
+summary(lmm2_pt1)$tTable %>% 
+  knitr::kable()
+
+lmm3_pt1 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
+summary(lmm3_pt1)$tTable %>% 
+  knitr::kable()
+```
+
+```{r}
+# add (on top of previous ones), SES, alcohol, smoking, change in stroke, exercise (MET), sleeping disorder etc. 
+lmm1_pt2 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
+summary(lmm1_pt2)$tTable %>% 
+  knitr::kable()
+
+lmm2_pt2 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
+summary(lmm2_pt2)$tTable %>% 
+  knitr::kable()
+
+lmm3_pt2 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
+summary(lmm3_pt2)$tTable %>% 
+  knitr::kable()
+```
+
+```{r}
+# adding education (one example)
+lmm1_edu = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PB1 + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
+summary(lmm1_edu)$tTable %>% 
+  knitr::kable()
+```
 
 
 ```{r}
-lmm1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "REML") 
+# finally, adding all the indicators of drug use
+lmm1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 +  B1PRSEX + B1PTSEI + B1PF7A + B1PB1  + D1PB19 + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "REML") 
 sum1 = summary(lmm1)
 sum1$tTable %>% 
   knitr::kable()
-plot(lmm1)
-cor(full_df_no_invalid$B1PB1, full_df_no_invalid$B1PTSEI)
+unique(full_df_no_invalid$B1SA11W)
 
 lmm2 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "REML") 
 sum2 = summary(lmm2)
 sum2$tTable %>% 
   knitr::kable()
-plot(lmm2)
 
 lmm3 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "REML") 
 sum3 = summary(lmm3)
 sum3$tTable %>% 
   knitr::kable()
-plot(lmm3)
-
-# dependent variable normally distributed
-full_df_no_invalid %>% 
-  ggplot(aes(x = D3TCOMP)) + 
-  geom_density()
-
 ```
 
+Check model assumptions
 ```{r}
-full_df_no_invalid %>% 
-  ggplot(aes(x = B1PAGE_M2, y = C3TCOMP)) + 
-  geom_point() +
-  geom_smooth()
-
-full_df_no_invalid %>% 
-  ggplot(aes(x = B1PAGE_M2, y = B3TCOMPZ3)) + 
-  geom_point() +
-  geom_smooth()
+plot(lmm1, main = "Change in Composite Scores: resid vs. fitted")
+plot(lmm2, main = "Change in Episodic Memory: resid vs. fitted")
+plot(lmm3, main = "Change in Executive Function: resid vs. fitted")
 ```
 
 

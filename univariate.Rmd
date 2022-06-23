@@ -35,10 +35,10 @@ full_df_lm = full_df_no_invalid %>%
 ```{r, results='asis'}
 # include education: SES is significantly correlated with both M2 and M3 composite scores but not the difference
 # exclude education: SES is significantly correlated with D3TCOMP and D3TEF but not D3TEM
-d_comp_lm = lm(D3TCOMP ~ B1PAGE_M2 + B1PRSEX + B1PF7A +  B1PTSEI + D1PB19 + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62T, data = full_df_lm)
-d_em_lm = lm(D3TEM ~ B1PAGE_M2 + B1PRSEX + B1PF7A + B1PTSEI + D1PB19 + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62T, data = full_df_lm)
-d_ef_lm = lm(D3TEF ~ B1PAGE_M2 + B1PRSEX + B1PF7A + B1PTSEI + D1PB19 + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62T, data = full_df_lm)
-ctq_lm = lm(ctq_total ~ B1PAGE_M2 + B1PRSEX + B1PF7A + B1PTSEI + D1PB19 + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62T, data = full_df_lm)
+d_comp_lm = lm(D3TCOMP ~ B1PAGE_M2 + B1PRSEX + B1PF7A +  B1PTSEI + D1PB19 + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SA62J, data = full_df_lm)
+d_em_lm = lm(D3TEM ~ B1PAGE_M2 + B1PRSEX + B1PF7A + B1PTSEI + D1PB19 + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SA62J, data = full_df_lm)
+d_ef_lm = lm(D3TEF ~ B1PAGE_M2 + B1PRSEX + B1PF7A + B1PTSEI + D1PB19 + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SA62J, data = full_df_lm)
+ctq_lm = lm(ctq_total ~ B1PAGE_M2 + B1PRSEX + B1PF7A + B1PTSEI + D1PB19 + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SA62J, data = full_df_lm)
 
 
 stargazer(d_comp_lm,d_em_lm, d_ef_lm, ctq_lm,
@@ -51,8 +51,12 @@ stargazer(d_comp_lm,d_em_lm, d_ef_lm, ctq_lm,
   # model.numbers = FALSE,
   # dep.var.caption = " ",
    #keep.stat = c("rsq")
-  notes.align = "l"
+  notes.align = "l",
+single.row = TRUE, 
+font.size = "small"
   )
-
+table(full_df_lm$B1SA62J)
+full_df_lm %>% 
+  filter(B1SA62J == 1)
 ```
 
