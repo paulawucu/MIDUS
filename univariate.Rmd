@@ -20,43 +20,232 @@ library(factoextra)
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 theme_set(theme_minimal() + theme(legend.position = "bottom") + theme(plot.title = element_text(hjust = 0.5)))
 ```
-```{r, results='asis'}
-full_df_no_invalid = read.csv("./data/full_df.csv") %>% 
-  select(-1)
-
+```{r}
+full_df_no_invalid_uni = read.csv("./data/full_df.csv") %>% 
+  select(-1) %>% 
+  mutate(B1PRSEX = as.factor(B1PRSEX),
+         B4ALCOH = factor(B4ALCOH, levels = c("former_light/abs", "former_moderate", "former_heavy", "current_light", "current_moderate", "current_heavy")),
+         D1PB19 = factor(D1PB19, levels = c(-1,0,1)))
 # 1 for white, 2 for non-white
-full_df_lm = full_df_no_invalid %>% 
-  mutate(B1PF7A = ifelse(as.numeric(B1PF7A) != 1, 2, as.numeric(B1PF7A)),
+full_df_lm = full_df_no_invalid_uni %>% 
+  mutate(B1PRSEX = as.factor(B1PRSEX),
+         B4ALCOH = factor(B4ALCOH, levels = c("former_light/abs", "former_moderate", "former_heavy", "current_light", "current_moderate", "current_heavy")),
+         D1PB19 = factor(D1PB19, levels = c(0,-1,1)), # marital status, 0 - unchanged, -1 - divorced, 1 - married
+         D1PA6A = factor(D1PA6A),
+         B1PF7A = ifelse(as.numeric(B1PF7A) != 1, 2, as.numeric(B1PF7A)),
          B1PF7A = as.factor(B1PF7A),
          B1PB1 = as.factor(B1PB1),
-         B1SA62T = B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SA62J)
-
+         B1PA39 = factor(B1PA39, levels = c("non_smoker", "former_smoker", "current_smoker")),
+         B1SA11W = as.factor(B1SA11W),
+         B1SA62A = as.factor(B1SA62A),
+         B1SA62B = as.factor(B1SA62B),
+         B1SA62C = as.factor(B1SA62C),
+         B1SA62D = as.factor(B1SA62D),
+         B1SA62E = as.factor(B1SA62E),
+         B1SA62F = as.factor(B1SA62F),
+         B1SA62G = as.factor(B1SA62G),
+         B1SA62H = as.factor(B1SA62H),
+         B1SA62I = as.factor(B1SA62I),
+         B1SA62J = as.factor(B1SA62J)) %>% 
+  select(-c(M2ID, M2FAMNUM, B3TCOMPZ3, B3TEMZ3, B3TEFZ3, B1PB19, C3TCOMP, C3TEM, C3TEF, C3IDATE_MO, C3IDATE_YR, C1PRAGE, C1SA11Z, C1PB19, B1PA6A, C1PA6A, B4QCT_EA, B4QCT_EN, B4QCT_MD, B4QCT_PA, B4QCT_PN, B4QCT_SA)) %>% 
+  select(D3TCOMP, D3TEM, D3TEF, ctq_total, everything())
 ```
+
 ```{r, results='asis'}
-# include education: SES is significantly correlated with both M2 and M3 composite scores but not the difference
-# exclude education: SES is significantly correlated with D3TCOMP and D3TEF but not D3TEM
-d_comp_lm = lm(D3TCOMP ~ B1PAGE_M2 + B1PRSEX + B1PF7A +  B1PTSEI + D1PB19 + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SA62J, data = full_df_lm)
-d_em_lm = lm(D3TEM ~ B1PAGE_M2 + B1PRSEX + B1PF7A + B1PTSEI + D1PB19 + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SA62J, data = full_df_lm)
-d_ef_lm = lm(D3TEF ~ B1PAGE_M2 + B1PRSEX + B1PF7A + B1PTSEI + D1PB19 + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SA62J, data = full_df_lm)
-ctq_lm = lm(ctq_total ~ B1PAGE_M2 + B1PRSEX + B1PF7A + B1PTSEI + D1PB19 + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SA62J, data = full_df_lm)
+full_df_lm_num = full_df_lm %>% 
+  select(B1PAGE_M2, B1PTSEI, B1SPWBA2, B1SPWBE2, B1SPWBG2, B1SPWBR2, B1SPWBU2, B1SPWBS2, B4HMETMW)
 
-
-stargazer(d_comp_lm,d_em_lm, d_ef_lm, ctq_lm,
-  type = 'latex',
-  header = FALSE,
-  notes.label = "Significance levels",
-  #title = "Results of 5 Regression Models",
-#  column.labels = c("Model 1", "Model 2", "Model 3", "Model 4", "Model 5"),
-  # colnames = FALSE,
-  # model.numbers = FALSE,
-  # dep.var.caption = " ",
-   #keep.stat = c("rsq")
-  notes.align = "l",
-single.row = TRUE, 
-font.size = "small"
-  )
-table(full_df_lm$B1SA62J)
-full_df_lm %>% 
-  filter(B1SA62J == 1)
+stargazer(full_df_lm_num, type = "latex", title="Descriptive statistics (Numeric Variables)", digits=3)
 ```
+
+Composite Scores
+```{r}
+uni_comp = lapply(full_df_lm[c(5:7, 9, 11:28, 31)], function(x) summary(lm(D3TCOMP~x ,data = full_df_lm)))
+df_comp = list()
+ind = c(5:7, 9, 11:28, 31)
+for (i in 1:length(uni_comp)){
+  ind_i = ind[i]
+  str = colnames(full_df_lm)[ind_i]
+  resl = uni_comp[[str]]$coefficients[2, c(1,2,4)]
+  df_comp = rbind(df_comp, resl)
+}
+df_comp = as.data.frame(df_comp) %>% 
+  unnest() %>% 
+  as.data.frame()
+rownames(df_comp) = c("Age", "Sex (Female)", "Race (Black)", "SES", "Sleep Problem", "Sedative", "Tranquilizer", "Stimulant", "Painkiller", "DepressMed", "Inhalant", "Marijuana", "Cocaine", "LDS", "Heroin", "Autonomy", "Environ Mastery", "Personal Growth", "Positive Relation", "Purpose in Life", "Self-Acceptance", "MET", "Stroke (between)")
+
+
+uni_comp_mul = lapply(full_df_lm[c(8, 10, 29, 30)], function(x) summary(lm(D3TCOMP~x ,data = full_df_lm)))
+df_comp_2 = list()
+ind_2 = c(8, 10, 29, 30)
+length_sp = c(10, 2, 5, 2)
+for (i in 1:length(uni_comp_mul)){
+  ind_i = ind_2[i]
+  str = colnames(full_df_lm)[ind_i]
+  resl = uni_comp_mul[[str]]$coefficients[2:(1+length_sp[i]), c(1,2,4)]
+  df_comp_2 = rbind(df_comp_2, resl)
+}
+df_comp_2 = as.data.frame(df_comp_2) %>% 
+  unnest() %>% 
+  as.data.frame()
+
+rownames(df_comp_2) = c("Some high School", "GED", " High School", "1-2 yr college", ">3 college", " 2-yr college", " 4/5-yr college", "Some Graduate School", "Master's Degree", "Doctoral Degree", "Former Smoker", "Current Smoker", "Former Moderate Drinker", "Former Heavy Drinker", "Current light Drinker", "Current Moderate Drinker", "Current Heavy Drinker", "Divorced or equi", "Married")
+
+df_comp = rbind(df_comp, df_comp_2) %>% 
+  janitor::clean_names()
+df_comp = tibble::rownames_to_column(df_comp, "Variables")
+df_comp = df_comp %>% 
+  mutate(sig = case_when(pr_t < 0.001 ~ "***",
+                         pr_t < 0.01 ~ "**",
+                         pr_t < 0.05 ~ "*",
+                         pr_t < 0.1 ~ ".",
+                         pr_t >= 0.1 ~ ""))
+df_comp = 
+  df_comp %>% 
+  mutate(estimate = paste0(round(estimate, digits = 4), " (", round(std_error, digits = 3), ") ", sig)) %>% 
+  select(-c(std_error, pr_t, sig))
+#knitr::kable(df_comp, col.names = c("", "Estimate", "Std Error", "Pr(>|t|)"))
+```
+
+EM
+```{r}
+uni_em = lapply(full_df_lm[c(5:7, 9, 11:28, 31)], function(x) summary(lm(D3TEM~x ,data = full_df_lm)))
+df_em = list()
+for (i in 1:length(uni_em)){
+  ind_i = ind[i]
+  str = colnames(full_df_lm)[ind_i]
+  resl = uni_em[[str]]$coefficients[2, c(1,2,4)]
+  df_em = rbind(df_em, resl)
+}
+df_em = as.data.frame(df_em) %>% 
+  unnest() %>% 
+  as.data.frame()
+rownames(df_em) = c("Age", "Sex (Female)", "Race (Black)", "SES", "Sleep Problem", "Sedative", "Tranquilizer", "Stimulant", "Painkiller", "DepressMed", "Inhalant", "Marijuana", "Cocaine", "LDS", "Heroin", "Autonomy", "Environ Mastery", "Personal Growth", "Positive Relation", "Purpose in Life", "Self-Acceptance", "MET", "Stroke (between)")
+
+
+uni_em_mul = lapply(full_df_lm[c(8, 10, 29, 30)], function(x) summary(lm(D3TEM~x ,data = full_df_lm)))
+df_em_2 = list()
+for (i in 1:length(uni_em_mul)){
+  ind_i = ind_2[i]
+  str = colnames(full_df_lm)[ind_i]
+  resl = uni_em_mul[[str]]$coefficients[2:(1+length_sp[i]), c(1,2,4)]
+  df_em_2 = rbind(df_em_2, resl)
+}
+df_em_2 = as.data.frame(df_em_2) %>% 
+  unnest() %>% 
+  as.data.frame()
+
+rownames(df_em_2) = c("Some high School", "GED", " High School", "1-2 yr college", ">3 college", " 2-yr college", " 4/5-yr college", "Some Graduate School", "Master's Degree", "Doctoral Degree", "Former Smoker", "Current Smoker", "Former Moderate Drinker", "Former Heavy Drinker", "Current light Drinker", "Current Moderate Drinker", "Current Heavy Drinker", "Divorced or equi", "Married")
+
+df_em = rbind(df_em, df_em_2) %>% 
+  janitor::clean_names()
+df_em = tibble::rownames_to_column(df_em, "Variables")
+df_em = df_em %>% 
+  mutate(sig = case_when(pr_t < 0.001 ~ "***",
+                         pr_t < 0.01 ~ "**",
+                         pr_t < 0.05 ~ "*",
+                         pr_t < 0.1 ~ ".",
+                         pr_t >= 0.1 ~ ""))
+df_em = 
+  df_em %>%
+  mutate(estimate = paste0(round(estimate, digits = 4), " (", round(std_error, digits = 3), ") ", sig)) %>% 
+  select(-c(std_error, pr_t, sig))
+```
+
+EF
+```{r}
+uni_ef = lapply(full_df_lm[c(5:7, 9, 11:28, 31)], function(x) summary(lm(D3TEF~x ,data = full_df_lm)))
+df_ef = list()
+for (i in 1:length(uni_ef)){
+  ind_i = ind[i]
+  str = colnames(full_df_lm)[ind_i]
+  resl = uni_ef[[str]]$coefficients[2, c(1,2,4)]
+  df_ef = rbind(df_ef, resl)
+}
+df_ef = as.data.frame(df_ef) %>% 
+  unnest() %>% 
+  as.data.frame()
+rownames(df_ef) = c("Age", "Sex (Female)", "Race (Black)", "SES", "Sleep Problem", "Sedative", "Tranquilizer", "Stimulant", "Painkiller", "DepressMed", "Inhalant", "Marijuana", "Cocaine", "LDS", "Heroin", "Autonomy", "Environ Mastery", "Personal Growth", "Positive Relation", "Purpose in Life", "Self-Acceptance", "MET", "Stroke (between)")
+
+
+uni_ef_mul = lapply(full_df_lm[c(8, 10, 29, 30)], function(x) summary(lm(D3TEF~x ,data = full_df_lm)))
+df_ef_2 = list()
+for (i in 1:length(uni_ef_mul)){
+  ind_i = ind_2[i]
+  str = colnames(full_df_lm)[ind_i]
+  resl = uni_ef_mul[[str]]$coefficients[2:(1+length_sp[i]), c(1,2,4)]
+  df_ef_2 = rbind(df_ef_2, resl)
+}
+df_ef_2 = as.data.frame(df_ef_2) %>% 
+  unnest() %>% 
+  as.data.frame()
+
+rownames(df_ef_2) = c("Some high School", "GED", " High School", "1-2 yr college", ">3 college", " 2-yr college", " 4/5-yr college", "Some Graduate School", "Master's Degree", "Doctoral Degree", "Former Smoker", "Current Smoker", "Former Moderate Drinker", "Former Heavy Drinker", "Current light Drinker", "Current Moderate Drinker", "Current Heavy Drinker", "Divorced or equi", "Married")
+
+df_ef = rbind(df_ef, df_ef_2) %>% 
+  janitor::clean_names()
+df_ef = tibble::rownames_to_column(df_ef, "Variables")
+df_ef = df_ef %>% 
+  mutate(sig = case_when(pr_t < 0.001 ~ "***",
+                         pr_t < 0.01 ~ "**",
+                         pr_t < 0.05 ~ "*",
+                         pr_t < 0.1 ~ ".",
+                         pr_t >= 0.1 ~ ""))
+df_ef = 
+  df_ef %>%
+  mutate(estimate = paste0(round(estimate, digits = 4), " (", round(std_error, digits = 3), ") ", sig)) %>% 
+  select(-c(std_error, pr_t, sig))
+```
+
+CTQ Total
+```{r}
+uni_ctq = lapply(full_df_lm[c(5:7, 9, 11:28, 31)], function(x) summary(lm(ctq_total~x ,data = full_df_lm)))
+df_ctq = list()
+for (i in 1:length(uni_ctq)){
+  ind_i = ind[i]
+  str = colnames(full_df_lm)[ind_i]
+  resl = uni_ctq[[str]]$coefficients[2, c(1,2,4)]
+  df_ctq = rbind(df_ctq, resl)
+}
+df_ctq = as.data.frame(df_ctq) %>% 
+  unnest() %>% 
+  as.data.frame()
+rownames(df_ctq) = c("Age", "Sex (Female)", "Race (Black)", "SES", "Sleep Problem", "Sedative", "Tranquilizer", "Stimulant", "Painkiller", "DepressMed", "Inhalant", "Marijuana", "Cocaine", "LDS", "Heroin", "Autonomy", "Environ Mastery", "Personal Growth", "Positive Relation", "Purpose in Life", "Self-Acceptance", "MET", "Stroke (between)")
+
+
+uni_ctq_mul = lapply(full_df_lm[c(8, 10, 29, 30)], function(x) summary(lm(ctq_total~x ,data = full_df_lm)))
+df_ctq_2 = list()
+for (i in 1:length(uni_ctq_mul)){
+  ind_i = ind_2[i]
+  str = colnames(full_df_lm)[ind_i]
+  resl = uni_ctq_mul[[str]]$coefficients[2:(1+length_sp[i]), c(1,2,4)]
+  df_ctq_2 = rbind(df_ctq_2, resl)
+}
+df_ctq_2 = as.data.frame(df_ctq_2) %>% 
+  unnest() %>% 
+  as.data.frame()
+
+rownames(df_ctq_2) = c("Some high School", "GED", " High School", "1-2 yr college", ">3 college", " 2-yr college", " 4/5-yr college", "Some Graduate School", "Master's Degree", "Doctoral Degree", "Former Smoker", "Current Smoker", "Former Moderate Drinker", "Former Heavy Drinker", "Current light Drinker", "Current Moderate Drinker", "Current Heavy Drinker", "Divorced or equi", "Married")
+
+df_ctq = rbind(df_ctq, df_ctq_2) %>% 
+  janitor::clean_names()
+df_ctq = tibble::rownames_to_column(df_ctq, "Variables")
+df_ctq = df_ctq %>% 
+  mutate(sig = case_when(pr_t < 0.001 ~ "***",
+                         pr_t < 0.01 ~ "**",
+                         pr_t < 0.05 ~ "*",
+                         pr_t < 0.1 ~ ".",
+                         pr_t >= 0.1 ~ ""))
+df_ctq = 
+  df_ctq %>%
+  mutate(estimate = paste0(round(estimate, digits = 4), " (", round(std_error, digits = 3), ") ", sig)) %>% 
+  select(-c(std_error, pr_t, sig))
+```
+
+```{r}
+uni_full = cbind(df_comp, df_em[2], df_ef[2], df_ctq[2])
+colnames(uni_full) = c("var", "comp", "em", "ef", "ctq")
+knitr::kable(uni_full, col.names = c("", "Composite Scores", "Episodic Memory", "Executive Function", "CTQ Total"), caption = "Bivariate Analysis")
+```
+
 
