@@ -3,6 +3,13 @@ investigations
 Paula Wu
 5/11/2022
 
+**7.7 Updates** (all updates are located at the bottom of this
+document): 1. Moderator effects of self-administered drugs are
+investigated and reported. 2. I also explored another method called
+“multivariate regression method”, which takes all three independent
+variables as the outcome variables while fitting other dependent
+variables as either predictors or covariates (details see below).
+
 ``` r
 m2_df = 
   read_csv("./data/m2_df.csv") %>% 
@@ -170,24 +177,11 @@ a %>%
   theme(legend.position = "none")+
   xlab("CTQ Total Score")+
   ylab("Density")
-```
 
-![](investigations_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
-
-``` r
 a %>% 
   mutate(below_49 = ifelse(ctq_total <= 39, 1, 0)) %>% 
   group_by(below_49) %>% 
   summarize(n = n())
-```
-
-    ## # A tibble: 2 × 2
-    ##   below_49     n
-    ##      <dbl> <int>
-    ## 1        0   341
-    ## 2        1   758
-
-``` r
 #ggsave("ctq_density.jpeg", width = 10, height = 7)
 ```
 
@@ -479,8 +473,8 @@ Model 1 - Executive Function (*Δ*)
 
 ``` r
 # add (on top of previous ones), SES, alcohol, smoking, change in stroke, exercise (MET), sleeping disorder etc. 
-lmm1_pt2 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
-summary(lmm1_pt2)$tTable %>% 
+lmm1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
+summary(lmm1)$tTable %>% 
   knitr::kable(caption = "Model 2 - Composite Scores ($\\Delta$)")
 ```
 
@@ -508,8 +502,8 @@ summary(lmm1_pt2)$tTable %>%
 Model 2 - Composite Scores (*Δ*)
 
 ``` r
-lmm2_pt2 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
-summary(lmm2_pt2)$tTable %>% 
+lmm2 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
+summary(lmm2)$tTable %>% 
   knitr::kable(caption = "Model 2 - Episodic Memory ($\\Delta$)")
 ```
 
@@ -537,8 +531,8 @@ summary(lmm2_pt2)$tTable %>%
 Model 2 - Episodic Memory (*Δ*)
 
 ``` r
-lmm3_pt2 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
-summary(lmm3_pt2)$tTable %>% 
+lmm3 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
+summary(lmm3)$tTable %>% 
   knitr::kable(caption = "Model 2 - Executive Function ($\\Delta$)")
 ```
 
@@ -594,184 +588,25 @@ summary(lmm1_edu)$tTable %>%
 | B4HMETMW                |  0.0217360 | 0.0136316 |  83 |   1.5945322 | 0.1146180 |
 | B1SA11W1                | -0.1003691 | 0.0447963 |  83 |  -2.2405668 | 0.0277256 |
 
-Before adding all the indicators of drug use to the model, let’s take a
-look at one problem
-
-``` r
-lmm1_test = lmer(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 +  B1PRSEX + B1PTSEI + B1PF7A + B1PB1  + D1PB19 + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SA62J + (1| M2FAMNUM), data = full_df_no_invalid, REML = TRUE) 
-```
-
-    ## fixed-effect model matrix is rank deficient so dropping 1 column / coefficient
-
-For the rank deficient problem, here are my interpretation of this
-problem and my attempt to address it. In a nutshell, the rank deficient
-problem occurred because two variables coded the same information,
-i.e. `B1SA62F` (use of inhalant) and `B1SA62J` (use of heroin) contain
-the same information. One and only one subject (ID: 11086) has used both
-drugs in the past 12 months. Therefore, I suggest that we combine
-`B1SA62F` and `B1SA62J` and create a new variable (the variable name
-doesn’t matter). This method works because these two variables are both
-indicators, thus the newly created variable is also an indicator,
-carrying information “Used inhalant and heroin on self during the past
-12 months”.
-
-``` r
-# finally, adding all the indicators of drug use
-lmm1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 +  B1PRSEX + B1PTSEI + B1PF7A + B1PB1  + D1PB19 + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "REML") 
-sum1 = summary(lmm1)
-sum1$tTable %>% 
-  knitr::kable(caption = "Model 3 - Composite Scores ($\\Delta$)")
-```
-
-|                         |      Value | Std.Error |  DF |     t-value |   p-value |
-|:------------------------|-----------:|----------:|----:|------------:|----------:|
-| (Intercept)             | -0.2208561 | 0.0786889 | 761 |  -2.8067002 | 0.0051331 |
-| ctq_total               | -0.0016601 | 0.0010554 |  78 |  -1.5729838 | 0.1197704 |
-| B3TCOMPZ3               | -0.5252010 | 0.0179860 |  78 | -29.2006188 | 0.0000000 |
-| B1PAGE_M2               | -0.1390368 | 0.0155090 |  78 |  -8.9649350 | 0.0000000 |
-| B1PRSEX2                |  0.0253363 | 0.0293605 |  78 |   0.8629391 | 0.3908165 |
-| B1PTSEI                 |  0.0266771 | 0.0160515 |  78 |   1.6619645 | 0.1005340 |
-| B1PF7A2                 | -0.1169824 | 0.0409256 |  78 |  -2.8584186 | 0.0054579 |
-| B1PB1                   |  0.0205977 | 0.0068811 |  78 |   2.9933698 | 0.0036944 |
-| D1PB19-1                | -0.0154205 | 0.0456475 |  78 |  -0.3378161 | 0.7364093 |
-| D1PB191                 | -0.0048179 | 0.0672694 |  78 |  -0.0716215 | 0.9430865 |
-| B1PA39former_smoker     |  0.0191625 | 0.0330119 |  78 |   0.5804728 | 0.5632691 |
-| B1PA39current_smoker    | -0.0041208 | 0.0506500 |  78 |  -0.0813584 | 0.9353654 |
-| B4HMETMW                |  0.0213509 | 0.0135791 |  78 |   1.5723351 | 0.1199207 |
-| B1SA11W1                | -0.0837848 | 0.0449847 |  78 |  -1.8625174 | 0.0662956 |
-| B4ALCOHformer_moderate  |  0.0827807 | 0.0538730 |  78 |   1.5365892 | 0.1284407 |
-| B4ALCOHformer_heavy     |  0.0552881 | 0.0602383 |  78 |   0.9178242 | 0.3615403 |
-| B4ALCOHcurrent_light    |  0.0369708 | 0.0693567 |  78 |   0.5330526 | 0.5955127 |
-| B4ALCOHcurrent_moderate |  0.1098488 | 0.0450420 |  78 |   2.4388046 | 0.0170084 |
-| B4ALCOHcurrent_heavy    |  0.0154289 | 0.0468963 |  78 |   0.3290007 | 0.7430369 |
-| B1SA62A1                | -0.1536996 | 0.0874864 |  78 |  -1.7568396 | 0.0828695 |
-| B1SA62B1                |  0.0902301 | 0.1008335 |  78 |   0.8948425 | 0.3736244 |
-| B1SA62C1                |  0.0168676 | 0.1488629 | 761 |   0.1133099 | 0.9098148 |
-| B1SA62D1                | -0.0818158 | 0.0699584 |  78 |  -1.1694922 | 0.2457668 |
-| B1SA62E1                | -0.3352846 | 0.1341726 |  78 |  -2.4989060 | 0.0145594 |
-| B1SA62F1                |  1.1503208 | 0.6066674 | 761 |   1.8961309 | 0.0583213 |
-| B1SA62G1                |  0.0226114 | 0.0694124 |  78 |   0.3257539 | 0.7454829 |
-| B1SA62H1                |  0.2092688 | 0.1514622 | 761 |   1.3816570 | 0.1674825 |
-| B1SA62I1                | -1.1425448 | 0.4315681 | 761 |  -2.6474261 | 0.0082785 |
-
-Model 3 - Composite Scores (*Δ*)
-
-``` r
-lmm2 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "REML") 
-sum2 = summary(lmm2)
-sum2$tTable %>% 
-  knitr::kable(caption = "Model 3 - Episodic Memory ($\\Delta$)")
-```
-
-|                         |      Value | Std.Error |  DF |     t-value |   p-value |
-|:------------------------|-----------:|----------:|----:|------------:|----------:|
-| (Intercept)             | -0.3739496 | 0.1565645 | 761 |  -2.3884705 | 0.0171615 |
-| ctq_total               | -0.0054389 | 0.0020967 |  78 |  -2.5940114 | 0.0113264 |
-| B3TEMZ3                 | -0.5641886 | 0.0332986 |  78 | -16.9433318 | 0.0000000 |
-| B1PAGE_M2               | -0.1993912 | 0.0295544 |  78 |  -6.7465812 | 0.0000000 |
-| B1PTSEI                 |  0.0165969 | 0.0318962 |  78 |   0.5203421 | 0.6042990 |
-| B1PB1                   |  0.0277826 | 0.0134140 |  78 |   2.0711624 | 0.0416506 |
-| B1PF7A2                 | -0.0300220 | 0.0784984 |  78 |  -0.3824539 | 0.7031648 |
-| D1PB19-1                | -0.1136768 | 0.0909272 |  78 |  -1.2501965 | 0.2149656 |
-| D1PB191                 | -0.0270698 | 0.1343218 |  78 |  -0.2015293 | 0.8408094 |
-| B1PRSEX2                |  0.4429849 | 0.0612737 |  78 |   7.2296060 | 0.0000000 |
-| B1PA39former_smoker     |  0.0655075 | 0.0658784 |  78 |   0.9943693 | 0.3231179 |
-| B1PA39current_smoker    | -0.1192875 | 0.1009220 |  78 |  -1.1819777 | 0.2408055 |
-| B4HMETMW                |  0.0538372 | 0.0270882 |  78 |   1.9874779 | 0.0503795 |
-| B1SA11W1                |  0.0058751 | 0.0895925 |  78 |   0.0655760 | 0.9478832 |
-| B4ALCOHformer_moderate  |  0.1121193 | 0.1072976 |  78 |   1.0449381 | 0.2992792 |
-| B4ALCOHformer_heavy     |  0.0783766 | 0.1199504 |  78 |   0.6534084 | 0.5154146 |
-| B4ALCOHcurrent_light    |  0.1883745 | 0.1383122 |  78 |   1.3619517 | 0.1771337 |
-| B4ALCOHcurrent_moderate |  0.1665050 | 0.0897414 |  78 |   1.8553863 | 0.0673190 |
-| B4ALCOHcurrent_heavy    | -0.0357676 | 0.0933759 |  78 |  -0.3830499 | 0.7027247 |
-| B1SA62A1                | -0.1999751 | 0.1742828 |  78 |  -1.1474176 | 0.2547164 |
-| B1SA62B1                |  0.4662552 | 0.2007005 |  78 |   2.3231389 | 0.0227788 |
-| B1SA62C1                | -0.1024116 | 0.2960846 | 761 |  -0.3458863 | 0.7295238 |
-| B1SA62D1                | -0.1300965 | 0.1395862 |  78 |  -0.9320155 | 0.3542045 |
-| B1SA62E1                | -0.3986256 | 0.2669788 |  78 |  -1.4930987 | 0.1394455 |
-| B1SA62F1                |  0.5848513 | 1.2066385 | 761 |   0.4846947 | 0.6280324 |
-| B1SA62G1                |  0.2974666 | 0.1376814 |  78 |   2.1605438 | 0.0338003 |
-| B1SA62H1                | -0.2184659 | 0.3008981 | 761 |  -0.7260461 | 0.4680338 |
-| B1SA62I1                | -1.0226590 | 0.8583474 | 761 |  -1.1914280 | 0.2338571 |
-
-Model 3 - Episodic Memory (*Δ*)
-
-``` r
-lmm3 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "REML") 
-sum3 = summary(lmm3)
-sum3$tTable %>% 
-  knitr::kable(caption = "Model 3 - Executive Function ($\\Delta$)")
-```
-
-|                         |      Value | Std.Error |  DF |     t-value |   p-value |
-|:------------------------|-----------:|----------:|----:|------------:|----------:|
-| (Intercept)             | -0.3180601 | 0.0840819 | 761 |  -3.7827426 | 0.0001673 |
-| ctq_total               |  0.0006390 | 0.0011291 |  78 |   0.5659589 | 0.5730464 |
-| B3TEFZ3                 | -0.4670088 | 0.0200960 |  78 | -23.2388882 | 0.0000000 |
-| B1PAGE_M2               | -0.1323093 | 0.0165853 |  78 |  -7.9775147 | 0.0000000 |
-| B1PTSEI                 |  0.0321327 | 0.0172702 |  78 |   1.8605797 | 0.0665724 |
-| B1PB1                   |  0.0142062 | 0.0073565 |  78 |   1.9311068 | 0.0571031 |
-| B1PF7A2                 | -0.1167654 | 0.0438027 |  78 |  -2.6657135 | 0.0093349 |
-| D1PB19-1                |  0.0699097 | 0.0490374 |  78 |   1.4256417 | 0.1579616 |
-| D1PB191                 |  0.0507913 | 0.0725473 |  78 |   0.7001130 | 0.4859397 |
-| B1PRSEX2                | -0.0594415 | 0.0312745 |  78 |  -1.9006390 | 0.0610438 |
-| B1PA39former_smoker     | -0.0079191 | 0.0355016 |  78 |  -0.2230642 | 0.8240686 |
-| B1PA39current_smoker    | -0.0300801 | 0.0544038 |  78 |  -0.5529041 | 0.5819103 |
-| B4HMETMW                |  0.0163775 | 0.0146226 |  78 |   1.1200143 | 0.2661446 |
-| B1SA11W1                | -0.0749137 | 0.0483010 |  78 |  -1.5509763 | 0.1249556 |
-| B4ALCOHformer_moderate  |  0.0557821 | 0.0578024 |  78 |   0.9650480 | 0.3375034 |
-| B4ALCOHformer_heavy     |  0.0547124 | 0.0647356 |  78 |   0.8451670 | 0.4006027 |
-| B4ALCOHcurrent_light    | -0.0567553 | 0.0745213 |  78 |  -0.7615981 | 0.4485965 |
-| B4ALCOHcurrent_moderate |  0.0526887 | 0.0483644 |  78 |   1.0894104 | 0.2793273 |
-| B4ALCOHcurrent_heavy    |  0.0161783 | 0.0502988 |  78 |   0.3216435 | 0.7485831 |
-| B1SA62A1                | -0.1958748 | 0.0940313 |  78 |  -2.0830802 | 0.0405203 |
-| B1SA62B1                |  0.0314589 | 0.1080746 |  78 |   0.2910848 | 0.7717591 |
-| B1SA62C1                | -0.0229552 | 0.1592573 | 761 |  -0.1441392 | 0.8854287 |
-| B1SA62D1                |  0.0021743 | 0.0753173 |  78 |   0.0288682 | 0.9770434 |
-| B1SA62E1                | -0.3504493 | 0.1442207 |  78 |  -2.4299524 | 0.0173987 |
-| B1SA62F1                |  1.6765602 | 0.6495207 | 761 |   2.5812268 | 0.0100310 |
-| B1SA62G1                | -0.0078899 | 0.0739891 |  78 |  -0.1066358 | 0.9153517 |
-| B1SA62H1                |  0.3091723 | 0.1621144 | 761 |   1.9071242 | 0.0568808 |
-| B1SA62I1                | -1.6417781 | 0.4620284 | 761 |  -3.5534141 | 0.0004037 |
-
-Model 3 - Executive Function (*Δ*)
-
-``` r
-full_df_no_invalid %>% 
-  filter(B1SA62F == 1)
-```
-
-    ## # A tibble: 1 × 53
-    ##    M2ID M2FAMNUM B3TCOMPZ3 B3TEMZ3 B3TEFZ3 B1PAGE_M2[,1] B1PRSEX B1PF7A B1PB1
-    ##   <dbl>    <dbl>     <dbl>   <dbl>   <dbl>         <dbl> <fct>   <fct>  <dbl>
-    ## 1 11086   100452     -0.41  -0.186  -0.071        -0.997 1       2          6
-    ## # … with 44 more variables: B1PTSEI <dbl[,1]>, B1PB19 <dbl>, B1PA6A <dbl>,
-    ## #   B1PA39 <fct>, B1SA11W <fct>, B1SA62A <fct>, B1SA62B <fct>, B1SA62C <fct>,
-    ## #   B1SA62D <fct>, B1SA62E <fct>, B1SA62F <fct>, B1SA62G <fct>, B1SA62H <fct>,
-    ## #   B1SA62I <fct>, B1SA62J <fct>, B1SPWBA2 <dbl[,1]>, B1SPWBE2 <dbl[,1]>,
-    ## #   B1SPWBG2 <dbl[,1]>, B1SPWBR2 <dbl[,1]>, B1SPWBU2 <dbl[,1]>,
-    ## #   B1SPWBS2 <dbl[,1]>, B4QCT_EA <dbl>, B4QCT_EN <dbl>, B4QCT_MD <dbl>,
-    ## #   B4QCT_PA <dbl>, B4QCT_PN <dbl>, B4QCT_SA <dbl>, B4HMETMW <dbl[,1]>, …
-
 Check model assumptions
 
 ``` r
 plot(lmm1, main = "Change in Composite Scores: resid vs. fitted")
 ```
 
-![](investigations_files/figure-gfm/unnamed-chunk-17-1.png)<!-- -->
+![](investigations_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
 
 ``` r
 plot(lmm2, main = "Change in Episodic Memory: resid vs. fitted")
 ```
 
-![](investigations_files/figure-gfm/unnamed-chunk-17-2.png)<!-- -->
+![](investigations_files/figure-gfm/unnamed-chunk-15-2.png)<!-- -->
 
 ``` r
 plot(lmm3, main = "Change in Executive Function: resid vs. fitted")
 ```
 
-![](investigations_files/figure-gfm/unnamed-chunk-17-3.png)<!-- -->
+![](investigations_files/figure-gfm/unnamed-chunk-15-3.png)<!-- -->
 
 # Modifiers
 
@@ -788,36 +623,36 @@ Autonomy (B1SPWBA2)
 
 ``` r
 # Composite
-lmm1_1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_autonomy = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBA2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm1_1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm1_autonomy = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
 anova(lmm1_1, lmm1_autonomy)
 ```
 
-    ##               Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm1_1            1 31 870.7299 1018.446 -404.3649                         
-    ## lmm1_autonomy     2 32 872.6194 1025.101 -404.3097 1 vs 2 0.1104336  0.7397
+    ##               Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+    ## lmm1_1            1 22 872.6073 977.4381 -414.3036                        
+    ## lmm1_autonomy     2 23 873.9829 983.5788 -413.9914 1 vs 2 0.624363  0.4294
 
 ``` r
 # EM
-lmm2_1 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_autonomy = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBA2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm2_1 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm2_autonomy = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
 anova(lmm2_1, lmm2_autonomy)
 ```
 
-    ##               Model df      AIC      BIC    logLik   Test    L.Ratio p-value
-    ## lmm2_1            1 31 2064.818 2212.534 -1001.409                          
-    ## lmm2_autonomy     2 32 2066.794 2219.275 -1001.397 1 vs 2 0.02430467  0.8761
+    ##               Model df      AIC      BIC    logLik   Test   L.Ratio p-value
+    ## lmm2_1            1 22 2063.141 2167.972 -1009.570                         
+    ## lmm2_autonomy     2 23 2064.965 2174.561 -1009.482 1 vs 2 0.1756932  0.6751
 
 ``` r
 # EF
-lmm3_1 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_autonomy = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBA2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm3_1 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm3_autonomy = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
 anova(lmm3_1, lmm3_autonomy)
 ```
 
-    ##               Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm3_1            1 31 992.8014 1140.518 -465.4007                         
-    ## lmm3_autonomy     2 32 994.6222 1147.103 -465.3111 1 vs 2 0.1791978  0.6721
+    ##               Model df       AIC      BIC    logLik   Test   L.Ratio p-value
+    ## lmm3_1            1 22  999.3977 1104.228 -477.6988                         
+    ## lmm3_autonomy     2 23 1000.7712 1110.367 -477.3856 1 vs 2 0.6264816  0.4286
 
 ``` r
 #plot(lmm3_autonomy)
@@ -827,382 +662,675 @@ Environmental Mastery (B1SPWBE2)
 
 ``` r
 # Composite
-lmm1_2 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_em = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBE2 + ctq_total*B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm1_2 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm1_em = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2 + ctq_total*B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
 anova(lmm1_2, lmm1_em)
 ```
 
-    ##         Model df      AIC      BIC   logLik   Test  L.Ratio p-value
-    ## lmm1_2      1 31 870.4560 1018.172 -404.228                        
-    ## lmm1_em     2 32 870.7479 1023.229 -403.374 1 vs 2 1.708085  0.1912
+    ##         Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+    ## lmm1_2      1 22 872.4598 977.2906 -414.2299                        
+    ## lmm1_em     2 23 872.3235 981.9193 -413.1617 1 vs 2 2.136317  0.1438
 
 ``` r
 # EM
-lmm2_2 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_em = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBE2 + ctq_total*B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm2_2 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm2_em = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2 + ctq_total*B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
 anova(lmm2_2, lmm2_em)
 ```
 
-    ##         Model df     AIC      BIC   logLik   Test   L.Ratio p-value
-    ## lmm2_2      1 31 2064.96 2212.677 -1001.48                         
-    ## lmm2_em     2 32 2066.80 2219.282 -1001.40 1 vs 2 0.1601912   0.689
+    ##         Model df      AIC      BIC    logLik   Test   L.Ratio p-value
+    ## lmm2_2      1 22 2063.774 2168.604 -1009.887                         
+    ## lmm2_em     2 23 2065.456 2175.052 -1009.728 1 vs 2 0.3173035  0.5732
 
 ``` r
 #plot(lmm2_autonomy)
 
 # EF
-lmm3_2 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_em = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBE2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm3_2 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm3_em = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
 anova(lmm3_2, lmm3_em)
 ```
 
-    ##         Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm3_2      1 31 993.2953 1141.012 -465.6477                         
-    ## lmm3_em     2 33 996.6187 1153.865 -465.3093 1 vs 2 0.6766602   0.713
+    ##         Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+    ## lmm3_2      1 22 1000.597 1105.428 -478.2986                        
+    ## lmm3_em     2 24 1002.675 1117.036 -477.3374 1 vs 2 1.922329  0.3824
 
 Personal Growth (B1SPWBG2)
 
 ``` r
 # Composite
-lmm1_3 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_pg = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBG2 + ctq_total*B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm1_3 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm1_pg = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2 + ctq_total*B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
 anova(lmm1_3, lmm1_pg)
 ```
 
     ##         Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm1_3      1 31 870.6814 1018.398 -404.3407                         
-    ## lmm1_pg     2 32 872.2616 1024.743 -404.1308 1 vs 2 0.4198705   0.517
+    ## lmm1_3      1 22 872.7432 977.5740 -414.3716                         
+    ## lmm1_pg     2 23 874.5398 984.1357 -414.2699 1 vs 2 0.2033483   0.652
 
 ``` r
 # EM
-lmm2_3 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_pg = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBG2 + ctq_total*B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm2_3 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm2_pg = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2 + ctq_total*B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
 anova(lmm2_3, lmm2_pg)
 ```
 
     ##         Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm2_3      1 31 2065.369 2213.085 -1001.684                         
-    ## lmm2_pg     2 32 2067.022 2219.503 -1001.511 1 vs 2 0.3467312   0.556
+    ## lmm2_3      1 22 2064.237 2169.068 -1010.118                         
+    ## lmm2_pg     2 23 2066.093 2175.689 -1010.046 1 vs 2 0.1441885  0.7042
 
 ``` r
 # EF
-lmm3_3 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_pg = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBG2 + ctq_total*B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm3_3 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm3_pg = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2 + ctq_total*B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
 anova(lmm3_3, lmm3_pg)
 ```
 
-    ##         Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm3_3      1 31 992.9034 1140.620 -465.4517                        
-    ## lmm3_pg     2 32 993.3896 1145.871 -464.6948 1 vs 2 1.513814  0.2186
+    ##         Model df       AIC      BIC    logLik   Test  L.Ratio p-value
+    ## lmm3_3      1 22  999.9347 1104.766 -477.9674                        
+    ## lmm3_pg     2 23 1000.6254 1110.221 -477.3127 1 vs 2 1.309304  0.2525
 
 Positive Relations with Others (B1SPWBR2)
 
 ``` r
 # Composite
-lmm1_4 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_pr = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBR2 + ctq_total*B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm1_4 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm1_pr = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2 + ctq_total*B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
 anova(lmm1_4, lmm1_pr)
 ```
 
-    ##         Model df     AIC      BIC    logLik   Test     L.Ratio p-value
-    ## lmm1_4      1 31 868.736 1016.452 -403.3680                           
-    ## lmm1_pr     2 32 870.727 1023.208 -403.3635 1 vs 2 0.009040341  0.9243
+    ##         Model df      AIC      BIC    logLik   Test   L.Ratio p-value
+    ## lmm1_4      1 22 871.4490 976.2799 -413.7245                         
+    ## lmm1_pr     2 23 873.4214 983.0173 -413.7107 1 vs 2 0.0275933  0.8681
 
 ``` r
 # EM
-lmm2_4 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_pr = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBR2 + ctq_total*B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm2_4 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm2_pr = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2 + ctq_total*B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
 anova(lmm2_4, lmm2_pr)
 ```
 
-    ##         Model df      AIC      BIC    logLik   Test    L.Ratio p-value
-    ## lmm2_4      1 31 2065.286 2213.002 -1001.643                          
-    ## lmm2_pr     2 32 2067.187 2219.669 -1001.594 1 vs 2 0.09854777  0.7536
+    ##         Model df      AIC      BIC    logLik   Test   L.Ratio p-value
+    ## lmm2_4      1 22 2064.356 2169.187 -1010.178                         
+    ## lmm2_pr     2 23 2066.188 2175.784 -1010.094 1 vs 2 0.1679829  0.6819
 
 ``` r
 # EF
-lmm3_4 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_pr = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBR2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm3_4 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm3_pr = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
 anova(lmm3_4, lmm3_pr)
 ```
 
     ##         Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm3_4      1 31 993.0278 1140.744 -465.5139                        
-    ## lmm3_pr     2 33 995.6638 1152.910 -464.8319 1 vs 2 1.363908  0.5056
+    ## lmm3_4      1 22 1000.557 1105.388 -478.2787                        
+    ## lmm3_pr     2 24 1002.013 1116.374 -477.0065 1 vs 2 2.544459  0.2802
 
 Purpose in Life (B1SPWBU2)
 
 ``` r
 # Composite
-lmm1_5 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_pl = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBU2 + ctq_total*B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm1_5 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm1_pl = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2 + ctq_total*B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
 anova(lmm1_5, lmm1_pl)
 ```
 
     ##         Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm1_5      1 31 870.4899 1018.206 -404.2449                         
-    ## lmm1_pl     2 32 872.3032 1024.784 -404.1516 1 vs 2 0.1867123  0.6657
+    ## lmm1_5      1 22 872.6220 977.4528 -414.3110                         
+    ## lmm1_pl     2 23 874.5048 984.1007 -414.2524 1 vs 2 0.1172279  0.7321
 
 ``` r
 # EM
-lmm2_5 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_pl = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBU2 + ctq_total*B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm2_5 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm2_pl = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2 + ctq_total*B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
 anova(lmm2_5, lmm2_pl)
 ```
 
-    ##         Model df      AIC      BIC    logLik   Test L.Ratio p-value
-    ## lmm2_5      1 31 2065.102 2212.818 -1001.551                       
-    ## lmm2_pl     2 32 2065.470 2217.952 -1000.735 1 vs 2 1.63186  0.2014
+    ##         Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+    ## lmm2_5      1 22 2063.867 2168.698 -1009.934                        
+    ## lmm2_pl     2 23 2064.430 2174.026 -1009.215 1 vs 2 1.437588  0.2305
 
 ``` r
 # EF
-lmm3_5 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_pl = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBU2 + ctq_total*B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm3_5 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm3_pl = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2 + ctq_total*B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
 anova(lmm3_5, lmm3_pl)
 ```
 
     ##         Model df      AIC      BIC    logLik   Test    L.Ratio p-value
-    ## lmm3_5      1 31 993.2883 1141.005 -465.6442                          
-    ## lmm3_pl     2 32 995.2738 1147.755 -465.6369 1 vs 2 0.01456247  0.9039
+    ## lmm3_5      1 22 1000.623 1105.454 -478.3117                          
+    ## lmm3_pl     2 23 1002.603 1112.199 -478.3014 1 vs 2 0.02060604  0.8859
 
 Self-Acceptance (B1SPWBS2)
 
 ``` r
 # Composite
-lmm1_6 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_sa = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBS2 + ctq_total*B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm1_6 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm1_sa = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2 + ctq_total*B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
 anova(lmm1_6, lmm1_sa)
 ```
 
     ##         Model df      AIC      BIC    logLik   Test    L.Ratio p-value
-    ## lmm1_6      1 31 868.5188 1016.235 -403.2594                          
-    ## lmm1_sa     2 32 870.4228 1022.904 -403.2114 1 vs 2 0.09602127  0.7567
+    ## lmm1_6      1 22 870.7782 975.6091 -413.3891                          
+    ## lmm1_sa     2 23 872.7447 982.3406 -413.3724 1 vs 2 0.03347297  0.8548
 
 ``` r
 # EM
-lmm2_6 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_sa = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBS2 + ctq_total*B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
+lmm2_6 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm2_sa = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2 + ctq_total*B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
 anova(lmm2_6, lmm2_sa)
 ```
 
-    ##         Model df      AIC      BIC    logLik   Test    L.Ratio p-value
-    ## lmm2_6      1 31 2065.310 2213.026 -1001.655                          
-    ## lmm2_sa     2 32 2067.245 2219.726 -1001.622 1 vs 2 0.06537117  0.7982
+    ##         Model df      AIC      BIC    logLik   Test     L.Ratio p-value
+    ## lmm2_6      1 22 2064.359 2169.189 -1010.179                           
+    ## lmm2_sa     2 23 2066.356 2175.952 -1010.178 1 vs 2 0.002690267  0.9586
 
 ``` r
 # EF
-lmm3_6 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_sa = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F + B1SA62G + B1SA62H + B1SA62I + B1SPWBS2 + ctq_total*B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-summary(lmm3_sa)
-```
-
-    ## Linear mixed-effects model fit by maximum likelihood
-    ##   Data: full_df_no_invalid 
-    ##        AIC      BIC    logLik
-    ##   994.7697 1147.251 -465.3849
-    ## 
-    ## Random effects:
-    ##  Formula: ~1 | M2FAMNUM
-    ##         (Intercept)  Residual
-    ## StdDev:   0.2098262 0.3586937
-    ## 
-    ## Fixed effects:  D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A +      D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH +      B1SA62A + B1SA62B + B1SA62C + B1SA62D + B1SA62E + B1SA62F +      B1SA62G + B1SA62H + B1SA62I + B1SPWBS2 + ctq_total * B1SPWBS2 
-    ##                              Value Std.Error  DF    t-value p-value
-    ## (Intercept)             -0.3130897 0.0849784 761  -3.684346  0.0002
-    ## ctq_total                0.0004302 0.0012031  76   0.357552  0.7217
-    ## B3TEFZ3                 -0.4657269 0.0202146  76 -23.039081  0.0000
-    ## B1PAGE_M2               -0.1303899 0.0167791  76  -7.770962  0.0000
-    ## B1PTSEI                  0.0331294 0.0173435  76   1.910185  0.0599
-    ## B1PB1                    0.0145398 0.0073888  76   1.967829  0.0527
-    ## B1PF7A2                 -0.1144979 0.0438992  76  -2.608198  0.0110
-    ## D1PB19-1                 0.0696810 0.0491153  76   1.418722  0.1601
-    ## D1PB191                  0.0531428 0.0728559  76   0.729424  0.4680
-    ## B1PRSEX2                -0.0578027 0.0313572  76  -1.843362  0.0692
-    ## B1PA39former_smoker     -0.0069851 0.0355655  76  -0.196400  0.8448
-    ## B1PA39current_smoker    -0.0320277 0.0545292  76  -0.587349  0.5587
-    ## B4HMETMW                 0.0168199 0.0146737  76   1.146259  0.2553
-    ## B1SA11W1                -0.0794293 0.0488689  76  -1.625355  0.1082
-    ## B4ALCOHformer_moderate   0.0549081 0.0579180  76   0.948032  0.3461
-    ## B4ALCOHformer_heavy      0.0497215 0.0650626  76   0.764210  0.4471
-    ## B4ALCOHcurrent_light    -0.0574054 0.0746650  76  -0.768840  0.4444
-    ## B4ALCOHcurrent_moderate  0.0529303 0.0484081  76   1.093417  0.2777
-    ## B4ALCOHcurrent_heavy     0.0148124 0.0504162  76   0.293803  0.7697
-    ## B1SA62A1                -0.1965786 0.0942313  76  -2.086128  0.0403
-    ## B1SA62B1                 0.0308660 0.1082101  76   0.285241  0.7762
-    ## B1SA62C1                -0.0264425 0.1600021 761  -0.165264  0.8688
-    ## B1SA62D1                 0.0024174 0.0754490  76   0.032040  0.9745
-    ## B1SA62E1                -0.3557660 0.1445236  76  -2.461646  0.0161
-    ## B1SA62F1                 1.6927490 0.6501064 761   2.603803  0.0094
-    ## B1SA62G1                -0.0034557 0.0741746  76  -0.046588  0.9630
-    ## B1SA62H1                 0.2996853 0.1626211 761   1.842844  0.0657
-    ## B1SA62I1                -1.6369687 0.4623644 761  -3.540430  0.0004
-    ## B1SPWBS2                -0.0142914 0.0427414  76  -0.334369  0.7390
-    ## ctq_total:B1SPWBS2       0.0000416 0.0009731  76   0.042707  0.9660
-    ##  Correlation: 
-    ##                         (Intr) ctq_tt B3TEFZ B1PAGE B1PTSE B1PB1  B1PF7A
-    ## ctq_total               -0.483                                          
-    ## B3TEFZ3                  0.066  0.005                                   
-    ## B1PAGE_M2               -0.089  0.061  0.340                            
-    ## B1PTSEI                  0.278 -0.005 -0.097 -0.032                     
-    ## B1PB1                   -0.694  0.051 -0.233  0.015 -0.438              
-    ## B1PF7A2                 -0.052 -0.065  0.301  0.194  0.050 -0.008       
-    ## D1PB19-1                -0.050  0.024  0.036 -0.024 -0.002  0.017  0.027
-    ## D1PB191                  0.052 -0.060 -0.002  0.068  0.013 -0.045 -0.013
-    ## B1PRSEX2                -0.241 -0.110  0.020  0.054  0.033  0.062 -0.048
-    ## B1PA39former_smoker     -0.192 -0.037  0.018 -0.135  0.067  0.039 -0.012
-    ## B1PA39current_smoker    -0.153 -0.071  0.008 -0.024  0.098  0.097 -0.038
-    ## B4HMETMW                -0.020 -0.016 -0.017  0.014  0.084  0.019  0.020
-    ## B1SA11W1                 0.022 -0.123  0.022 -0.036  0.045 -0.011 -0.065
-    ## B4ALCOHformer_moderate  -0.205 -0.072  0.008  0.023 -0.001 -0.064  0.014
-    ## B4ALCOHformer_heavy     -0.233 -0.042 -0.061  0.032 -0.036  0.019 -0.067
-    ## B4ALCOHcurrent_light    -0.169 -0.007 -0.003 -0.050 -0.007 -0.050  0.045
-    ## B4ALCOHcurrent_moderate -0.268 -0.062 -0.036  0.049 -0.027 -0.049  0.034
-    ## B4ALCOHcurrent_heavy    -0.291 -0.036 -0.022  0.080 -0.031 -0.021  0.036
-    ## B1SA62A1                 0.013 -0.026 -0.058 -0.046 -0.033  0.013 -0.008
-    ## B1SA62B1                 0.005 -0.039 -0.001 -0.003  0.018  0.016  0.011
-    ## B1SA62C1                 0.021 -0.034  0.038  0.034 -0.001  0.006  0.051
-    ## B1SA62D1                 0.033 -0.005 -0.018  0.019  0.002 -0.025  0.000
-    ## B1SA62E1                 0.030 -0.029  0.067  0.052 -0.007 -0.016 -0.005
-    ## B1SA62F1                 0.006  0.008 -0.017 -0.008  0.054 -0.030 -0.022
-    ## B1SA62G1                -0.043 -0.035 -0.064  0.094 -0.005  0.063 -0.071
-    ## B1SA62H1                -0.021  0.041  0.041  0.055 -0.013 -0.002 -0.044
-    ## B1SA62I1                -0.036  0.021 -0.004 -0.013 -0.051  0.048 -0.032
-    ## B1SPWBS2                 0.081 -0.146  0.049 -0.034 -0.032 -0.080 -0.001
-    ## ctq_total:B1SPWBS2      -0.119  0.252 -0.080 -0.025  0.003  0.062 -0.022
-    ##                         D1PB19- D1PB191 B1PRSE B1PA39f_ B1PA39c_ B4HMET B1SA11
-    ## ctq_total                                                                     
-    ## B3TEFZ3                                                                       
-    ## B1PAGE_M2                                                                     
-    ## B1PTSEI                                                                       
-    ## B1PB1                                                                         
-    ## B1PF7A2                                                                       
-    ## D1PB19-1                                                                      
-    ## D1PB191                  0.078                                                
-    ## B1PRSEX2                -0.050   0.003                                        
-    ## B1PA39former_smoker     -0.007  -0.043   0.091                                
-    ## B1PA39current_smoker    -0.007  -0.088   0.093  0.488                         
-    ## B4HMETMW                 0.037   0.034   0.133  0.045   -0.028                
-    ## B1SA11W1                 0.017  -0.038  -0.091  0.057    0.012    0.007       
-    ## B4ALCOHformer_moderate  -0.035  -0.024   0.007 -0.139   -0.112   -0.028  0.054
-    ## B4ALCOHformer_heavy     -0.048  -0.047   0.072 -0.214   -0.151   -0.056  0.026
-    ## B4ALCOHcurrent_light     0.018  -0.011  -0.075 -0.079   -0.030   -0.042  0.064
-    ## B4ALCOHcurrent_moderate -0.052  -0.009   0.056 -0.250   -0.137   -0.040 -0.009
-    ## B4ALCOHcurrent_heavy    -0.043  -0.016   0.083 -0.274   -0.190   -0.065 -0.022
-    ## B1SA62A1                -0.005   0.058  -0.067 -0.016   -0.053   -0.003 -0.046
-    ## B1SA62B1                -0.030  -0.050   0.010 -0.019    0.039    0.044 -0.023
-    ## B1SA62C1                 0.005   0.020  -0.044  0.007   -0.046   -0.007  0.043
-    ## B1SA62D1                -0.009  -0.070  -0.002 -0.056   -0.035   -0.036 -0.054
-    ## B1SA62E1                 0.045   0.034  -0.019 -0.048   -0.026    0.018  0.025
-    ## B1SA62F1                 0.069  -0.001   0.013  0.024    0.024   -0.019  0.081
-    ## B1SA62G1                -0.039   0.032   0.102 -0.001   -0.108   -0.036  0.008
-    ## B1SA62H1                 0.006  -0.012   0.004  0.020   -0.069    0.001  0.033
-    ## B1SA62I1                -0.092   0.004   0.036 -0.025    0.054    0.025 -0.114
-    ## B1SPWBS2                -0.019   0.007  -0.015 -0.023   -0.023    0.027 -0.026
-    ## ctq_total:B1SPWBS2       0.028  -0.033  -0.012  0.010    0.039   -0.047  0.078
-    ##                         B4ALCOHfrmr_m B4ALCOHfrmr_h B4ALCOHcrrnt_l
-    ## ctq_total                                                         
-    ## B3TEFZ3                                                           
-    ## B1PAGE_M2                                                         
-    ## B1PTSEI                                                           
-    ## B1PB1                                                             
-    ## B1PF7A2                                                           
-    ## D1PB19-1                                                          
-    ## D1PB191                                                           
-    ## B1PRSEX2                                                          
-    ## B1PA39former_smoker                                               
-    ## B1PA39current_smoker                                              
-    ## B4HMETMW                                                          
-    ## B1SA11W1                                                          
-    ## B4ALCOHformer_moderate                                            
-    ## B4ALCOHformer_heavy      0.435                                    
-    ## B4ALCOHcurrent_light     0.354         0.310                      
-    ## B4ALCOHcurrent_moderate  0.577         0.541         0.427        
-    ## B4ALCOHcurrent_heavy     0.564         0.546         0.404        
-    ## B1SA62A1                 0.021        -0.011         0.009        
-    ## B1SA62B1                 0.014         0.018         0.016        
-    ## B1SA62C1                -0.015         0.028         0.008        
-    ## B1SA62D1                -0.011        -0.003        -0.017        
-    ## B1SA62E1                 0.019        -0.074        -0.001        
-    ## B1SA62F1                -0.002         0.063         0.003        
-    ## B1SA62G1                -0.004        -0.011        -0.018        
-    ## B1SA62H1                 0.007        -0.005        -0.013        
-    ## B1SA62I1                -0.007        -0.066        -0.010        
-    ## B1SPWBS2                 0.045         0.034        -0.032        
-    ## ctq_total:B1SPWBS2      -0.033         0.000         0.041        
-    ##                         B4ALCOHcrrnt_m B4ALCOHcrrnt_h B1SA62A B1SA62B B1SA62C
-    ## ctq_total                                                                    
-    ## B3TEFZ3                                                                      
-    ## B1PAGE_M2                                                                    
-    ## B1PTSEI                                                                      
-    ## B1PB1                                                                        
-    ## B1PF7A2                                                                      
-    ## D1PB19-1                                                                     
-    ## D1PB191                                                                      
-    ## B1PRSEX2                                                                     
-    ## B1PA39former_smoker                                                          
-    ## B1PA39current_smoker                                                         
-    ## B4HMETMW                                                                     
-    ## B1SA11W1                                                                     
-    ## B4ALCOHformer_moderate                                                       
-    ## B4ALCOHformer_heavy                                                          
-    ## B4ALCOHcurrent_light                                                         
-    ## B4ALCOHcurrent_moderate                                                      
-    ## B4ALCOHcurrent_heavy     0.708                                               
-    ## B1SA62A1                 0.023         -0.005                                
-    ## B1SA62B1                -0.023         -0.023         -0.212                 
-    ## B1SA62C1                -0.043          0.007         -0.105   0.072         
-    ## B1SA62D1                -0.021         -0.033         -0.131  -0.051  -0.120 
-    ## B1SA62E1                -0.019         -0.020         -0.020  -0.060  -0.092 
-    ## B1SA62F1                 0.015         -0.016         -0.070  -0.135  -0.202 
-    ## B1SA62G1                -0.021         -0.066          0.016  -0.093  -0.187 
-    ## B1SA62H1                -0.010         -0.015          0.008  -0.194   0.072 
-    ## B1SA62I1                 0.011          0.022          0.001   0.089  -0.010 
-    ## B1SPWBS2                 0.013          0.058         -0.034   0.036  -0.070 
-    ## ctq_total:B1SPWBS2      -0.017         -0.048          0.042  -0.037   0.087 
-    ##                         B1SA62D B1SA62E B1SA62F B1SA62G B1SA62H B1SA62I B1SPWB
-    ## ctq_total                                                                     
-    ## B3TEFZ3                                                                       
-    ## B1PAGE_M2                                                                     
-    ## B1PTSEI                                                                       
-    ## B1PB1                                                                         
-    ## B1PF7A2                                                                       
-    ## D1PB19-1                                                                      
-    ## D1PB191                                                                       
-    ## B1PRSEX2                                                                      
-    ## B1PA39former_smoker                                                           
-    ## B1PA39current_smoker                                                          
-    ## B4HMETMW                                                                      
-    ## B1SA11W1                                                                      
-    ## B4ALCOHformer_moderate                                                        
-    ## B4ALCOHformer_heavy                                                           
-    ## B4ALCOHcurrent_light                                                          
-    ## B4ALCOHcurrent_moderate                                                       
-    ## B4ALCOHcurrent_heavy                                                          
-    ## B1SA62A1                                                                      
-    ## B1SA62B1                                                                      
-    ## B1SA62C1                                                                      
-    ## B1SA62D1                                                                      
-    ## B1SA62E1                -0.009                                                
-    ## B1SA62F1                -0.057  -0.188                                        
-    ## B1SA62G1                -0.077   0.002   0.073                                
-    ## B1SA62H1                -0.110   0.039   0.019  -0.191                        
-    ## B1SA62I1                 0.057  -0.005  -0.641  -0.077  -0.318                
-    ## B1SPWBS2                -0.027   0.033  -0.012  -0.006   0.035   0.013        
-    ## ctq_total:B1SPWBS2       0.028  -0.016   0.001  -0.023  -0.008  -0.021  -0.928
-    ## 
-    ## Standardized Within-Group Residuals:
-    ##         Min          Q1         Med          Q3         Max 
-    ## -4.86074580 -0.53200000  0.03815905  0.57952265  3.14870746 
-    ## 
-    ## Number of Observations: 867
-    ## Number of Groups: 766
-
-``` r
+lmm3_6 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm3_sa = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2 + ctq_total*B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
 anova(lmm3_6, lmm3_sa)
 ```
 
-    ##         Model df      AIC      BIC    logLik   Test    L.Ratio p-value
-    ## lmm3_6      1 31 992.7716 1140.488 -465.3858                          
-    ## lmm3_sa     2 32 994.7697 1147.251 -465.3849 1 vs 2 0.00188923  0.9653
+    ##         Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+    ## lmm3_6      1 22 1000.113 1104.944 -478.0567                        
+    ## lmm3_sa     2 23 1002.101 1111.697 -478.0507 1 vs 2 0.012018  0.9127
 
 -   the results are the same using `lmer` package.
+
+### part 2: Self-administered Drugs
+
+Results being significant: Using Sedative has a moderating effect on the
+change in episodic memory (0.0198) Results being near the threshold:
+Using Painkillers upon change in episodic memory (0.0996); Using LDS
+upon change in Executive Functioning (0.06)
+
+“Sedative”(A)
+
+``` r
+# COMP
+lmm1_1_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm1_1_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm1_1_base, lmm1_1_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test    L.Ratio p-value
+    ## lmm1_1_base     1 22 869.1618 973.9926 -412.5809                          
+    ## lmm1_1_a        2 23 871.0984 980.6943 -412.5492 1 vs 2 0.06335034  0.8013
+
+``` r
+# EM
+lmm2_1_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm2_1_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm2_1_base, lmm2_1_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+    ## lmm2_1_base     1 22 2063.325 2168.156 -1009.663                        
+    ## lmm2_1_a        2 23 2059.895 2169.491 -1006.947 1 vs 2 5.430399  0.0198
+
+``` r
+# EF
+lmm3_1_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm3_1_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm3_1_base, lmm3_1_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+    ## lmm3_1_base     1 22 996.0513 1100.882 -476.0257                        
+    ## lmm3_1_a        2 23 997.0369 1106.633 -475.5185 1 vs 2 1.014426  0.3138
+
+“Tranquilizer”(B)
+
+``` r
+# COMP
+lmm1_2_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm1_2_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm1_2_base, lmm1_2_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+    ## lmm1_2_base     1 22 872.4624 977.2932 -414.2312                        
+    ## lmm1_2_a        2 23 873.2376 982.8335 -413.6188 1 vs 2 1.224822  0.2684
+
+``` r
+# EM
+lmm2_2_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm2_2_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm2_2_base, lmm2_2_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
+    ## lmm2_2_base     1 22 2060.695 2165.526 -1008.347                         
+    ## lmm2_2_a        2 23 2061.796 2171.391 -1007.898 1 vs 2 0.8992667   0.343
+
+``` r
+# EF
+lmm3_2_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm3_2_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm3_2_base, lmm3_2_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
+    ## lmm3_2_base     1 22 1000.677 1105.507 -478.3382                         
+    ## lmm3_2_a        2 23 1002.049 1111.645 -478.0247 1 vs 2 0.6270175  0.4285
+
+“Stimulant”(C)
+
+``` r
+# COMP
+lmm1_3_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm1_3_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm1_3_base, lmm1_3_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
+    ## lmm1_3_base     1 22 872.2382 977.0690 -414.1191                         
+    ## lmm1_3_a        2 23 873.7579 983.3538 -413.8789 1 vs 2 0.4802682  0.4883
+
+``` r
+# EM
+lmm2_3_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm2_3_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm2_3_base, lmm2_3_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+    ## lmm2_3_base     1 22 2063.820 2168.650 -1009.910                        
+    ## lmm2_3_a        2 23 2065.703 2175.299 -1009.851 1 vs 2 0.116765  0.7326
+
+``` r
+# EF
+lmm3_3_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm3_3_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm3_3_base, lmm3_3_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+    ## lmm3_3_base     1 22 999.9159 1104.747 -477.9579                        
+    ## lmm3_3_a        2 23 999.7895 1109.385 -476.8947 1 vs 2 2.126399  0.1448
+
+“Painkiller” (D)
+
+``` r
+# COMP
+lmm1_4_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm1_4_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm1_4_base, lmm1_4_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
+    ## lmm1_4_base     1 22 871.1367 975.9676 -413.5684                         
+    ## lmm1_4_a        2 23 872.4871 982.0830 -413.2435 1 vs 2 0.6496331  0.4202
+
+``` r
+# EM
+lmm2_4_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm2_4_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm2_4_base, lmm2_4_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+    ## lmm2_4_base     1 22 2063.525 2168.356 -1009.763                        
+    ## lmm2_4_a        2 23 2062.812 2172.408 -1008.406 1 vs 2 2.712431  0.0996
+
+``` r
+# EF
+lmm3_4_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm3_4_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm3_4_base, lmm3_4_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test     L.Ratio p-value
+    ## lmm3_4_base     1 22 1000.656 1105.487 -478.3281                           
+    ## lmm3_4_a        2 23 1002.648 1112.244 -478.3242 1 vs 2 0.007872413  0.9293
+
+“Depress Medication” (E)
+
+``` r
+# COMP
+lmm1_5_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm1_5_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm1_5_base, lmm1_5_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test     L.Ratio p-value
+    ## lmm1_5_base     1 22 865.7931 970.6239 -410.8965                           
+    ## lmm1_5_a        2 23 867.7884 977.3843 -410.8942 1 vs 2 0.004708808  0.9453
+
+``` r
+# EM
+lmm2_5_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm2_5_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm2_5_base, lmm2_5_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
+    ## lmm2_5_base     1 22 2061.595 2166.425 -1008.797                         
+    ## lmm2_5_a        2 23 2063.337 2172.933 -1008.668 1 vs 2 0.2576297  0.6118
+
+``` r
+# EF
+lmm3_5_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm3_5_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm3_5_base, lmm3_5_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
+    ## lmm3_5_base     1 22 993.9699 1098.801 -474.9850                         
+    ## lmm3_5_a        2 23 995.4829 1105.079 -474.7414 1 vs 2 0.4870597  0.4852
+
+“Inhalant” & “Heroin” (F/J)
+
+``` r
+# COMP
+lmm1_6_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm1_6_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm1_6_base, lmm1_6_a)
+
+# EM
+lmm2_6_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm2_6_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm2_6_base, lmm2_6_a)
+
+# EF
+lmm3_6_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm3_6_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm3_6_base, lmm3_6_a)
+```
+
+“Marijuana” (G)
+
+``` r
+# COMP
+lmm1_7_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm1_7_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm1_7_base, lmm1_7_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
+    ## lmm1_7_base     1 22 872.7299 977.5608 -414.3650                         
+    ## lmm1_7_a        2 23 874.4190 984.0149 -414.2095 1 vs 2 0.3109475  0.5771
+
+``` r
+# EM
+lmm2_7_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm2_7_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm2_7_base, lmm2_7_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
+    ## lmm2_7_base     1 22 2060.930 2165.761 -1008.465                         
+    ## lmm2_7_a        2 23 2062.504 2172.100 -1008.252 1 vs 2 0.4266585  0.5136
+
+``` r
+# EF
+lmm3_7_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm3_7_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm3_7_base, lmm3_7_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
+    ## lmm3_7_base     1 22 1000.589 1105.420 -478.2944                         
+    ## lmm3_7_a        2 23 1002.021 1111.617 -478.0107 1 vs 2 0.5675265  0.4512
+
+“Cocaine” (H)
+
+``` r
+# COMP
+lmm1_8_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm1_8_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm1_8_base, lmm1_8_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+    ## lmm1_8_base     1 22 872.4662 977.2970 -414.2331                        
+    ## lmm1_8_a        2 23 874.1934 983.7893 -414.0967 1 vs 2 0.272739  0.6015
+
+``` r
+# EM
+lmm2_8_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm2_8_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm2_8_base, lmm2_8_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
+    ## lmm2_8_base     1 22 2064.055 2168.886 -1010.028                         
+    ## lmm2_8_a        2 23 2065.724 2175.320 -1009.862 1 vs 2 0.3312035   0.565
+
+``` r
+# EF
+lmm3_8_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm3_8_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm3_8_base, lmm3_8_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+    ## lmm3_8_base     1 22 1000.167 1104.998 -478.0834                        
+    ## lmm3_8_a        2 23 1000.892 1110.488 -477.4462 1 vs 2 1.274444  0.2589
+
+“LDS” (I)
+
+``` r
+# COMP
+lmm1_9_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm1_9_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm1_9_base, lmm1_9_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+    ## lmm1_9_base     1 22 868.8418 973.6727 -412.4209                        
+    ## lmm1_9_a        2 23 869.3964 978.9923 -411.6982 1 vs 2 1.445407  0.2293
+
+``` r
+# EM
+lmm2_9_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm2_9_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm2_9_base, lmm2_9_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test    L.Ratio p-value
+    ## lmm2_9_base     1 22 2061.986 2166.817 -1008.993                          
+    ## lmm2_9_a        2 23 2063.954 2173.550 -1008.977 1 vs 2 0.03235308  0.8573
+
+``` r
+# EF
+lmm3_9_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+lmm3_9_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
+anova(lmm3_9_base, lmm3_9_a)
+```
+
+    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
+    ## lmm3_9_base     1 22 994.4434 1099.274 -475.2217                        
+    ## lmm3_9_a        2 23 992.9290 1102.525 -473.4645 1 vs 2 3.514465  0.0608
+
+## Multivariate Regression Models
+
+This method is also new to me, but I would like to want to explore the
+possibilities of combining the three independent variables (Composite
+scores, Episodic Memory, Executive Functioning) and see what are the
+outcomes. Thus, here I introduce the concept of “multivariate
+regression”, where multiple variables can be found on the LHS of the
+equation.
+
+For implementation, I used the library `brms`. Here is my
+[reference](https://cran.r-project.org/web/packages/brms/vignettes/brms_multivariate.html)
+
+``` r
+# multivariate normal model
+bform1 = bf(mvbind(D3TCOMP, D3TEM, D3TEF) ~ ctq_total + B3TCOMPZ3 + B3TEMZ3 + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + (1|p|M2FAMNUM)) + 
+  set_rescor(TRUE) # we don't have missing values in predictors
+
+fit1 = brm(bform1, data = full_df_no_invalid, chains = 3, cores = 4)
+```
+
+    ## Running /Library/Frameworks/R.framework/Resources/bin/R CMD SHLIB foo.c
+    ## clang -mmacosx-version-min=10.13 -I"/Library/Frameworks/R.framework/Resources/include" -DNDEBUG   -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/Rcpp/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/unsupported"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/BH/include" -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/src/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppParallel/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/rstan/include" -DEIGEN_NO_DEBUG  -DBOOST_DISABLE_ASSERTS  -DBOOST_PENDING_INTEGER_LOG2_HPP  -DSTAN_THREADS  -DBOOST_NO_AUTO_PTR  -include '/Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/stan/math/prim/mat/fun/Eigen.hpp'  -D_REENTRANT -DRCPP_PARALLEL_USE_TBB=1   -I/usr/local/include   -fPIC  -Wall -g -O2  -c foo.c -o foo.o
+    ## In file included from <built-in>:1:
+    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/stan/math/prim/mat/fun/Eigen.hpp:13:
+    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Dense:1:
+    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Core:88:
+    ## /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/src/Core/util/Macros.h:628:1: error: unknown type name 'namespace'
+    ## namespace Eigen {
+    ## ^
+    ## /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/src/Core/util/Macros.h:628:16: error: expected ';' after top level declarator
+    ## namespace Eigen {
+    ##                ^
+    ##                ;
+    ## In file included from <built-in>:1:
+    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/stan/math/prim/mat/fun/Eigen.hpp:13:
+    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Dense:1:
+    ## /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Core:96:10: fatal error: 'complex' file not found
+    ## #include <complex>
+    ##          ^~~~~~~~~
+    ## 3 errors generated.
+    ## make: *** [foo.o] Error 1
+
+``` r
+fit = add_criterion(fit1, "loo")
+sum_fit = summary(fit)
+```
+
+“p-value” in multivariate models’ results? Here is some very primitive
+way of calculating the p-value (I will explore more).
+
+``` r
+sum_fit$fixed %>% 
+  rownames_to_column() %>% 
+  janitor::clean_names() %>% 
+  mutate(p_val = 2*pnorm(-abs(estimate/est_error), mean = 0, sd = 1)) %>%
+  mutate(sig = case_when(p_val < 0.001 ~ "***",
+                         p_val < 0.01 ~ "**",
+                         p_val < 0.05 ~ "*",
+                         p_val < 0.1 ~ ".",
+                         p_val >= 0.1 ~ "")) %>% 
+  select(rowname, p_val, sig, everything())
+```
+
+    ##                            rowname        p_val sig      estimate   est_error
+    ## 1                D3TCOMP_Intercept 2.845193e-03  ** -0.2339104014 0.078388558
+    ## 2                  D3TEM_Intercept 3.407572e-02   * -0.3294548917 0.155463786
+    ## 3                  D3TEF_Intercept 2.246865e-04 *** -0.3164102021 0.085759412
+    ## 4                D3TCOMP_ctq_total 7.945891e-02   . -0.0017798507 0.001014834
+    ## 5                D3TCOMP_B3TCOMPZ3 2.283746e-18 *** -0.7297078846 0.083468463
+    ## 6                  D3TCOMP_B3TEMZ3 8.094520e-01      0.0074477688 0.030886561
+    ## 7                  D3TCOMP_B3TEFZ3 2.282133e-03  **  0.2306415940 0.075599737
+    ## 8                D3TCOMP_B1PAGE_M2 1.428569e-17 *** -0.1333526405 0.015628253
+    ## 9                  D3TCOMP_B1PTSEI 1.757704e-01      0.0215004646 0.015880473
+    ## 10                   D3TCOMP_B1PB1 2.936000e-03  **  0.0202211259 0.006798479
+    ## 11                 D3TCOMP_B1PF7A2 7.880707e-03  ** -0.1060164311 0.039898723
+    ## 12                D3TCOMP_D1PB19M1 6.795080e-01     -0.0190515633 0.046114661
+    ## 13                 D3TCOMP_D1PB191 9.316578e-01     -0.0059035865 0.068839090
+    ## 14                D3TCOMP_B1PRSEX2 7.693085e-02   .  0.0548271186 0.030997165
+    ## 15     D3TCOMP_B1PA39former_smoker 8.087188e-01      0.0078409038 0.032389826
+    ## 16    D3TCOMP_B1PA39current_smoker 9.139607e-01     -0.0054153670 0.050121831
+    ## 17                D3TCOMP_B4HMETMW 1.232728e-01      0.0208814789 0.013549013
+    ## 18                D3TCOMP_B1SA11W1 3.194302e-02   * -0.0959407018 0.044725036
+    ## 19  D3TCOMP_B4ALCOHformer_moderate 1.563166e-01      0.0782230526 0.055181114
+    ## 20     D3TCOMP_B4ALCOHformer_heavy 8.263632e-01      0.0129668994 0.059110195
+    ## 21    D3TCOMP_B4ALCOHcurrent_light 8.319082e-01      0.0152375313 0.071788832
+    ## 22 D3TCOMP_B4ALCOHcurrent_moderate 2.980193e-02   *  0.0987120073 0.045432604
+    ## 23    D3TCOMP_B4ALCOHcurrent_heavy 9.023354e-01      0.0057565971 0.046911537
+    ## 24                 D3TEM_ctq_total 1.353100e-02   * -0.0050294287 0.002036636
+    ## 25                 D3TEM_B3TCOMPZ3 8.635650e-01      0.0287272434 0.167176503
+    ## 26                   D3TEM_B3TEMZ3 6.174926e-22 *** -0.6005550131 0.062385072
+    ## 27                   D3TEM_B3TEFZ3 4.205560e-01      0.1218525525 0.151283754
+    ## 28                 D3TEM_B1PAGE_M2 4.147255e-08 *** -0.1681164598 0.030653217
+    ## 29                   D3TEM_B1PTSEI 9.537132e-01      0.0018047519 0.031092542
+    ## 30                     D3TEM_B1PB1 2.274903e-01      0.0159685281 0.013231589
+    ## 31                   D3TEM_B1PF7A2 4.752657e-01      0.0553184709 0.077483614
+    ## 32                  D3TEM_D1PB19M1 3.081339e-01     -0.0928687886 0.091124172
+    ## 33                   D3TEM_D1PB191 9.674842e-01     -0.0053547400 0.131360078
+    ## 34                  D3TEM_B1PRSEX2 1.680873e-13 ***  0.4525963189 0.061393968
+    ## 35       D3TEM_B1PA39former_smoker 3.227128e-01      0.0638355716 0.064552197
+    ## 36      D3TEM_B1PA39current_smoker 2.733253e-01     -0.1069768652 0.097656807
+    ## 37                  D3TEM_B4HMETMW 5.611875e-02   .  0.0510922158 0.026748278
+    ## 38                  D3TEM_B1SA11W1 9.412204e-01     -0.0065797791 0.089234238
+    ## 39    D3TEM_B4ALCOHformer_moderate 3.540975e-01      0.0997213788 0.107612517
+    ## 40       D3TEM_B4ALCOHformer_heavy 8.697524e-01      0.0195681331 0.119337495
+    ## 41      D3TEM_B4ALCOHcurrent_light 2.442437e-01      0.1677850279 0.144090128
+    ## 42   D3TEM_B4ALCOHcurrent_moderate 1.094217e-01      0.1418369384 0.088603914
+    ## 43      D3TEM_B4ALCOHcurrent_heavy 6.435700e-01     -0.0422834217 0.091381515
+    ## 44                 D3TEF_ctq_total 6.864173e-01      0.0004472218 0.001107748
+    ## 45                 D3TEF_B3TCOMPZ3 6.458784e-01     -0.0415425067 0.090408947
+    ## 46                   D3TEF_B3TEMZ3 5.561289e-01      0.0201152672 0.034174698
+    ## 47                   D3TEF_B3TEFZ3 1.046690e-07 *** -0.4312013599 0.081076882
+    ## 48                 D3TEF_B1PAGE_M2 4.324565e-15 *** -0.1322982077 0.016863706
+    ## 49                   D3TEF_B1PTSEI 1.199757e-01      0.0274628102 0.017662385
+    ## 50                     D3TEF_B1PB1 4.721217e-02   *  0.0149663739 0.007542046
+    ## 51                   D3TEF_B1PF7A2 6.074497e-03  ** -0.1196587229 0.043611654
+    ## 52                  D3TEF_D1PB19M1 2.131364e-01      0.0614127039 0.049327978
+    ## 53                   D3TEF_D1PB191 4.000969e-01      0.0636014399 0.075585695
+    ## 54                  D3TEF_B1PRSEX2 4.911350e-02   * -0.0659931880 0.033539856
+    ## 55       D3TEF_B1PA39former_smoker 6.282822e-01     -0.0169865958 0.035085681
+    ## 56      D3TEF_B1PA39current_smoker 5.524907e-01     -0.0322586076 0.054304493
+    ## 57                  D3TEF_B4HMETMW 2.211860e-01      0.0185256078 0.015142965
+    ## 58                  D3TEF_B1SA11W1 5.538773e-02   . -0.0933144517 0.048707261
+    ## 59    D3TEF_B4ALCOHformer_moderate 2.666843e-01      0.0678572212 0.061092422
+    ## 60       D3TEF_B4ALCOHformer_heavy 6.535310e-01      0.0295509075 0.065835127
+    ## 61      D3TEF_B4ALCOHcurrent_light 4.820748e-01     -0.0544865642 0.077509153
+    ## 62   D3TEF_B4ALCOHcurrent_moderate 2.461485e-01      0.0581216437 0.050115442
+    ## 63      D3TEF_B4ALCOHcurrent_heavy 7.096931e-01      0.0193874052 0.052079124
+    ##    l_95_percent_ci u_95_percent_ci      rhat  bulk_ess tail_ess
+    ## 1    -3.860800e-01   -0.0795740025 1.0012116 2249.3632 2341.992
+    ## 2    -6.291004e-01   -0.0218210450 1.0008327 2841.9627 2488.170
+    ## 3    -4.833034e-01   -0.1506559016 1.0012354 2604.1092 2448.943
+    ## 4    -3.796933e-03    0.0001941245 0.9999404 3344.8725 2719.336
+    ## 5    -8.919799e-01   -0.5679641346 1.0031372  710.2206 1087.156
+    ## 6    -5.247329e-02    0.0696446565 1.0014711  813.5990 1651.797
+    ## 7     8.349829e-02    0.3779445552 1.0023579  759.9366 1109.046
+    ## 8    -1.644151e-01   -0.1034056380 1.0016249 2127.0283 2009.867
+    ## 9    -9.847438e-03    0.0529356007 1.0038016 1898.0894 2126.518
+    ## 10    7.174122e-03    0.0330554239 1.0000322 2598.1964 2687.848
+    ## 11   -1.833019e-01   -0.0264922557 1.0016376 2406.9423 2134.029
+    ## 12   -1.085408e-01    0.0688951321 1.0010415 1938.7413 2155.998
+    ## 13   -1.386375e-01    0.1329012822 1.0038917 1918.4106 1956.860
+    ## 14   -5.315170e-03    0.1147092534 1.0006233 2478.9695 2166.156
+    ## 15   -5.674319e-02    0.0709516970 1.0001569 1391.9507 2342.152
+    ## 16   -1.025367e-01    0.0898306719 1.0032214 1485.2778 2267.509
+    ## 17   -5.257199e-03    0.0470802098 1.0005067 2599.9044 2125.672
+    ## 18   -1.835077e-01   -0.0085023904 1.0009421 2405.6808 1989.499
+    ## 19   -2.834802e-02    0.1818783982 0.9999115 1200.3908 1622.078
+    ## 20   -1.019551e-01    0.1324547855 0.9995837 1201.6608 1725.136
+    ## 21   -1.263785e-01    0.1509114649 1.0015026 1544.9083 1912.979
+    ## 22    7.231266e-03    0.1856496703 1.0002890  968.7858 1507.603
+    ## 23   -8.443258e-02    0.0933454043 0.9996510 1193.9823 2015.756
+    ## 24   -9.054635e-03   -0.0010687525 1.0002499 3629.7272 2569.694
+    ## 25   -3.028952e-01    0.3484421255 1.0028420 1015.3221 1663.814
+    ## 26   -7.239021e-01   -0.4785584174 1.0024066 1055.8816 1867.205
+    ## 27   -1.625920e-01    0.4127177782 1.0024235 1063.9283 1787.260
+    ## 28   -2.290713e-01   -0.1082371233 1.0002801 3338.4087 2516.718
+    ## 29   -5.916263e-02    0.0609109805 1.0011218 2456.6172 2500.747
+    ## 30   -1.037560e-02    0.0411780582 0.9998846 3242.6297 2507.842
+    ## 31   -9.640090e-02    0.2062078918 1.0007452 3564.7172 2713.389
+    ## 32   -2.747504e-01    0.0852888177 1.0000421 3093.5565 2103.566
+    ## 33   -2.536968e-01    0.2501918976 1.0001335 2899.2709 2496.672
+    ## 34    3.316015e-01    0.5699951082 0.9994939 3217.1283 2354.105
+    ## 35   -6.341476e-02    0.1862489437 1.0001555 2410.3080 2443.632
+    ## 36   -3.017858e-01    0.0871188507 1.0017853 2921.3020 2305.762
+    ## 37   -1.458286e-03    0.1053218905 1.0013122 3564.0580 2056.086
+    ## 38   -1.827329e-01    0.1648690125 1.0004427 2945.5521 2293.065
+    ## 39   -1.145019e-01    0.3093264999 1.0030419 1814.0635 2047.056
+    ## 40   -2.197962e-01    0.2596959513 1.0026746 1936.5454 2380.892
+    ## 41   -1.080074e-01    0.4513225123 1.0047948 1972.6156 2322.780
+    ## 42   -3.059155e-02    0.3165580389 1.0034896 1441.6064 1807.556
+    ## 43   -2.240122e-01    0.1401323749 1.0047621 1487.8330 2090.358
+    ## 44   -1.739434e-03    0.0026364756 1.0004570 3450.7995 2584.894
+    ## 45   -2.200895e-01    0.1356696043 1.0010213 1044.1125 1651.488
+    ## 46   -4.492198e-02    0.0887903153 1.0005203 1288.2232 1832.821
+    ## 47   -5.927704e-01   -0.2699564256 1.0010643 1014.5720 1398.972
+    ## 48   -1.657690e-01   -0.1003309134 1.0019306 2525.3589 2260.988
+    ## 49   -6.094109e-03    0.0614286899 1.0033711 2279.7544 2144.756
+    ## 50    9.219127e-05    0.0296719940 1.0000096 3023.2061 2566.483
+    ## 51   -2.025965e-01   -0.0302264515 1.0006707 2403.7725 1953.580
+    ## 52   -3.889979e-02    0.1555845225 1.0001605 3071.2392 2204.278
+    ## 53   -7.982794e-02    0.2151710297 1.0039951 2083.8846 1951.179
+    ## 54   -1.308014e-01   -0.0024997939 0.9999488 2747.8548 2069.847
+    ## 55   -8.418175e-02    0.0515675261 1.0003820 1493.7052 1971.461
+    ## 56   -1.381430e-01    0.0739930320 1.0010032 1653.1809 1738.630
+    ## 57   -1.172953e-02    0.0484066688 1.0005256 2794.9316 2040.227
+    ## 58   -1.860024e-01    0.0028046632 1.0000285 2662.5927 2112.822
+    ## 59   -5.359671e-02    0.1815968500 1.0009957 1625.5415 1944.228
+    ## 60   -9.236472e-02    0.1601728411 1.0003255 1318.9443 2205.781
+    ## 61   -2.015615e-01    0.0995596618 1.0001071 1924.1554 2111.383
+    ## 62   -4.106690e-02    0.1550393450 1.0006954 1196.7345 1925.471
+    ## 63   -8.415467e-02    0.1213510231 1.0004826 1353.0607 1775.581
