@@ -3,12 +3,16 @@ investigations
 Paula Wu
 5/11/2022
 
-**7.7 Updates** (all updates are located at the bottom of this
-document): 1. Moderator effects of self-administered drugs are
-investigated and reported. 2. I also explored another method called
-“multivariate regression method”, which takes all three independent
-variables as the outcome variables while fitting other dependent
-variables as either predictors or covariates (details see below).
+**7.7/7.14 Updates** (all updates are located at the bottom of this
+document):
+
+1.  Moderator effects of self-administered drugs are investigated and
+    reported.
+
+2.  I also explored another method called “multivariate multilevel
+    regression”, which takes all three independent variables as the
+    outcome variables while fitting other dependent variables as either
+    predictors or covariates (details see below).
 
 ``` r
 m2_df = 
@@ -1143,14 +1147,14 @@ anova(lmm3_9_base, lmm3_9_a)
     ## lmm3_9_base     1 22 994.4434 1099.274 -475.2217                        
     ## lmm3_9_a        2 23 992.9290 1102.525 -473.4645 1 vs 2 3.514465  0.0608
 
-## Multivariate Regression Models
+## Multivariate Multilevel Regression Models
 
 This method is also new to me, but I would like to want to explore the
 possibilities of combining the three independent variables (Composite
 scores, Episodic Memory, Executive Functioning) and see what are the
-outcomes. Thus, here I introduce the concept of “multivariate
+outcomes. Thus, here I introduce the concept of “multivariate multilevel
 regression”, where multiple variables can be found on the LHS of the
-equation.
+equation (i.e. multiple independent variables).
 
 For implementation, I used the library `brms`. Here is my
 [reference](https://cran.r-project.org/web/packages/brms/vignettes/brms_multivariate.html)
@@ -1161,32 +1165,12 @@ bform1 = bf(mvbind(D3TCOMP, D3TEM, D3TEF) ~ ctq_total + B3TCOMPZ3 + B3TEMZ3 + B3
   set_rescor(TRUE) # we don't have missing values in predictors
 
 fit1 = brm(bform1, data = full_df_no_invalid, chains = 3, cores = 4)
+fit = add_criterion(fit1, "loo")
 ```
 
-    ## Running /Library/Frameworks/R.framework/Resources/bin/R CMD SHLIB foo.c
-    ## clang -mmacosx-version-min=10.13 -I"/Library/Frameworks/R.framework/Resources/include" -DNDEBUG   -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/Rcpp/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/unsupported"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/BH/include" -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/src/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppParallel/include/"  -I"/Library/Frameworks/R.framework/Versions/4.1/Resources/library/rstan/include" -DEIGEN_NO_DEBUG  -DBOOST_DISABLE_ASSERTS  -DBOOST_PENDING_INTEGER_LOG2_HPP  -DSTAN_THREADS  -DBOOST_NO_AUTO_PTR  -include '/Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/stan/math/prim/mat/fun/Eigen.hpp'  -D_REENTRANT -DRCPP_PARALLEL_USE_TBB=1   -I/usr/local/include   -fPIC  -Wall -g -O2  -c foo.c -o foo.o
-    ## In file included from <built-in>:1:
-    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/stan/math/prim/mat/fun/Eigen.hpp:13:
-    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Dense:1:
-    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Core:88:
-    ## /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/src/Core/util/Macros.h:628:1: error: unknown type name 'namespace'
-    ## namespace Eigen {
-    ## ^
-    ## /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/src/Core/util/Macros.h:628:16: error: expected ';' after top level declarator
-    ## namespace Eigen {
-    ##                ^
-    ##                ;
-    ## In file included from <built-in>:1:
-    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/StanHeaders/include/stan/math/prim/mat/fun/Eigen.hpp:13:
-    ## In file included from /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Dense:1:
-    ## /Library/Frameworks/R.framework/Versions/4.1/Resources/library/RcppEigen/include/Eigen/Core:96:10: fatal error: 'complex' file not found
-    ## #include <complex>
-    ##          ^~~~~~~~~
-    ## 3 errors generated.
-    ## make: *** [foo.o] Error 1
-
 ``` r
-fit = add_criterion(fit1, "loo")
+#saveRDS(fit, "./results/fit.rds")
+fit = readRDS("./results/fit.rds")
 sum_fit = summary(fit)
 ```
 
@@ -1207,130 +1191,144 @@ sum_fit$fixed %>%
 ```
 
     ##                            rowname        p_val sig      estimate   est_error
-    ## 1                D3TCOMP_Intercept 2.845193e-03  ** -0.2339104014 0.078388558
-    ## 2                  D3TEM_Intercept 3.407572e-02   * -0.3294548917 0.155463786
-    ## 3                  D3TEF_Intercept 2.246865e-04 *** -0.3164102021 0.085759412
-    ## 4                D3TCOMP_ctq_total 7.945891e-02   . -0.0017798507 0.001014834
-    ## 5                D3TCOMP_B3TCOMPZ3 2.283746e-18 *** -0.7297078846 0.083468463
-    ## 6                  D3TCOMP_B3TEMZ3 8.094520e-01      0.0074477688 0.030886561
-    ## 7                  D3TCOMP_B3TEFZ3 2.282133e-03  **  0.2306415940 0.075599737
-    ## 8                D3TCOMP_B1PAGE_M2 1.428569e-17 *** -0.1333526405 0.015628253
-    ## 9                  D3TCOMP_B1PTSEI 1.757704e-01      0.0215004646 0.015880473
-    ## 10                   D3TCOMP_B1PB1 2.936000e-03  **  0.0202211259 0.006798479
-    ## 11                 D3TCOMP_B1PF7A2 7.880707e-03  ** -0.1060164311 0.039898723
-    ## 12                D3TCOMP_D1PB19M1 6.795080e-01     -0.0190515633 0.046114661
-    ## 13                 D3TCOMP_D1PB191 9.316578e-01     -0.0059035865 0.068839090
-    ## 14                D3TCOMP_B1PRSEX2 7.693085e-02   .  0.0548271186 0.030997165
-    ## 15     D3TCOMP_B1PA39former_smoker 8.087188e-01      0.0078409038 0.032389826
-    ## 16    D3TCOMP_B1PA39current_smoker 9.139607e-01     -0.0054153670 0.050121831
-    ## 17                D3TCOMP_B4HMETMW 1.232728e-01      0.0208814789 0.013549013
-    ## 18                D3TCOMP_B1SA11W1 3.194302e-02   * -0.0959407018 0.044725036
-    ## 19  D3TCOMP_B4ALCOHformer_moderate 1.563166e-01      0.0782230526 0.055181114
-    ## 20     D3TCOMP_B4ALCOHformer_heavy 8.263632e-01      0.0129668994 0.059110195
-    ## 21    D3TCOMP_B4ALCOHcurrent_light 8.319082e-01      0.0152375313 0.071788832
-    ## 22 D3TCOMP_B4ALCOHcurrent_moderate 2.980193e-02   *  0.0987120073 0.045432604
-    ## 23    D3TCOMP_B4ALCOHcurrent_heavy 9.023354e-01      0.0057565971 0.046911537
-    ## 24                 D3TEM_ctq_total 1.353100e-02   * -0.0050294287 0.002036636
-    ## 25                 D3TEM_B3TCOMPZ3 8.635650e-01      0.0287272434 0.167176503
-    ## 26                   D3TEM_B3TEMZ3 6.174926e-22 *** -0.6005550131 0.062385072
-    ## 27                   D3TEM_B3TEFZ3 4.205560e-01      0.1218525525 0.151283754
-    ## 28                 D3TEM_B1PAGE_M2 4.147255e-08 *** -0.1681164598 0.030653217
-    ## 29                   D3TEM_B1PTSEI 9.537132e-01      0.0018047519 0.031092542
-    ## 30                     D3TEM_B1PB1 2.274903e-01      0.0159685281 0.013231589
-    ## 31                   D3TEM_B1PF7A2 4.752657e-01      0.0553184709 0.077483614
-    ## 32                  D3TEM_D1PB19M1 3.081339e-01     -0.0928687886 0.091124172
-    ## 33                   D3TEM_D1PB191 9.674842e-01     -0.0053547400 0.131360078
-    ## 34                  D3TEM_B1PRSEX2 1.680873e-13 ***  0.4525963189 0.061393968
-    ## 35       D3TEM_B1PA39former_smoker 3.227128e-01      0.0638355716 0.064552197
-    ## 36      D3TEM_B1PA39current_smoker 2.733253e-01     -0.1069768652 0.097656807
-    ## 37                  D3TEM_B4HMETMW 5.611875e-02   .  0.0510922158 0.026748278
-    ## 38                  D3TEM_B1SA11W1 9.412204e-01     -0.0065797791 0.089234238
-    ## 39    D3TEM_B4ALCOHformer_moderate 3.540975e-01      0.0997213788 0.107612517
-    ## 40       D3TEM_B4ALCOHformer_heavy 8.697524e-01      0.0195681331 0.119337495
-    ## 41      D3TEM_B4ALCOHcurrent_light 2.442437e-01      0.1677850279 0.144090128
-    ## 42   D3TEM_B4ALCOHcurrent_moderate 1.094217e-01      0.1418369384 0.088603914
-    ## 43      D3TEM_B4ALCOHcurrent_heavy 6.435700e-01     -0.0422834217 0.091381515
-    ## 44                 D3TEF_ctq_total 6.864173e-01      0.0004472218 0.001107748
-    ## 45                 D3TEF_B3TCOMPZ3 6.458784e-01     -0.0415425067 0.090408947
-    ## 46                   D3TEF_B3TEMZ3 5.561289e-01      0.0201152672 0.034174698
-    ## 47                   D3TEF_B3TEFZ3 1.046690e-07 *** -0.4312013599 0.081076882
-    ## 48                 D3TEF_B1PAGE_M2 4.324565e-15 *** -0.1322982077 0.016863706
-    ## 49                   D3TEF_B1PTSEI 1.199757e-01      0.0274628102 0.017662385
-    ## 50                     D3TEF_B1PB1 4.721217e-02   *  0.0149663739 0.007542046
-    ## 51                   D3TEF_B1PF7A2 6.074497e-03  ** -0.1196587229 0.043611654
-    ## 52                  D3TEF_D1PB19M1 2.131364e-01      0.0614127039 0.049327978
-    ## 53                   D3TEF_D1PB191 4.000969e-01      0.0636014399 0.075585695
-    ## 54                  D3TEF_B1PRSEX2 4.911350e-02   * -0.0659931880 0.033539856
-    ## 55       D3TEF_B1PA39former_smoker 6.282822e-01     -0.0169865958 0.035085681
-    ## 56      D3TEF_B1PA39current_smoker 5.524907e-01     -0.0322586076 0.054304493
-    ## 57                  D3TEF_B4HMETMW 2.211860e-01      0.0185256078 0.015142965
-    ## 58                  D3TEF_B1SA11W1 5.538773e-02   . -0.0933144517 0.048707261
-    ## 59    D3TEF_B4ALCOHformer_moderate 2.666843e-01      0.0678572212 0.061092422
-    ## 60       D3TEF_B4ALCOHformer_heavy 6.535310e-01      0.0295509075 0.065835127
-    ## 61      D3TEF_B4ALCOHcurrent_light 4.820748e-01     -0.0544865642 0.077509153
-    ## 62   D3TEF_B4ALCOHcurrent_moderate 2.461485e-01      0.0581216437 0.050115442
-    ## 63      D3TEF_B4ALCOHcurrent_heavy 7.096931e-01      0.0193874052 0.052079124
-    ##    l_95_percent_ci u_95_percent_ci      rhat  bulk_ess tail_ess
-    ## 1    -3.860800e-01   -0.0795740025 1.0012116 2249.3632 2341.992
-    ## 2    -6.291004e-01   -0.0218210450 1.0008327 2841.9627 2488.170
-    ## 3    -4.833034e-01   -0.1506559016 1.0012354 2604.1092 2448.943
-    ## 4    -3.796933e-03    0.0001941245 0.9999404 3344.8725 2719.336
-    ## 5    -8.919799e-01   -0.5679641346 1.0031372  710.2206 1087.156
-    ## 6    -5.247329e-02    0.0696446565 1.0014711  813.5990 1651.797
-    ## 7     8.349829e-02    0.3779445552 1.0023579  759.9366 1109.046
-    ## 8    -1.644151e-01   -0.1034056380 1.0016249 2127.0283 2009.867
-    ## 9    -9.847438e-03    0.0529356007 1.0038016 1898.0894 2126.518
-    ## 10    7.174122e-03    0.0330554239 1.0000322 2598.1964 2687.848
-    ## 11   -1.833019e-01   -0.0264922557 1.0016376 2406.9423 2134.029
-    ## 12   -1.085408e-01    0.0688951321 1.0010415 1938.7413 2155.998
-    ## 13   -1.386375e-01    0.1329012822 1.0038917 1918.4106 1956.860
-    ## 14   -5.315170e-03    0.1147092534 1.0006233 2478.9695 2166.156
-    ## 15   -5.674319e-02    0.0709516970 1.0001569 1391.9507 2342.152
-    ## 16   -1.025367e-01    0.0898306719 1.0032214 1485.2778 2267.509
-    ## 17   -5.257199e-03    0.0470802098 1.0005067 2599.9044 2125.672
-    ## 18   -1.835077e-01   -0.0085023904 1.0009421 2405.6808 1989.499
-    ## 19   -2.834802e-02    0.1818783982 0.9999115 1200.3908 1622.078
-    ## 20   -1.019551e-01    0.1324547855 0.9995837 1201.6608 1725.136
-    ## 21   -1.263785e-01    0.1509114649 1.0015026 1544.9083 1912.979
-    ## 22    7.231266e-03    0.1856496703 1.0002890  968.7858 1507.603
-    ## 23   -8.443258e-02    0.0933454043 0.9996510 1193.9823 2015.756
-    ## 24   -9.054635e-03   -0.0010687525 1.0002499 3629.7272 2569.694
-    ## 25   -3.028952e-01    0.3484421255 1.0028420 1015.3221 1663.814
-    ## 26   -7.239021e-01   -0.4785584174 1.0024066 1055.8816 1867.205
-    ## 27   -1.625920e-01    0.4127177782 1.0024235 1063.9283 1787.260
-    ## 28   -2.290713e-01   -0.1082371233 1.0002801 3338.4087 2516.718
-    ## 29   -5.916263e-02    0.0609109805 1.0011218 2456.6172 2500.747
-    ## 30   -1.037560e-02    0.0411780582 0.9998846 3242.6297 2507.842
-    ## 31   -9.640090e-02    0.2062078918 1.0007452 3564.7172 2713.389
-    ## 32   -2.747504e-01    0.0852888177 1.0000421 3093.5565 2103.566
-    ## 33   -2.536968e-01    0.2501918976 1.0001335 2899.2709 2496.672
-    ## 34    3.316015e-01    0.5699951082 0.9994939 3217.1283 2354.105
-    ## 35   -6.341476e-02    0.1862489437 1.0001555 2410.3080 2443.632
-    ## 36   -3.017858e-01    0.0871188507 1.0017853 2921.3020 2305.762
-    ## 37   -1.458286e-03    0.1053218905 1.0013122 3564.0580 2056.086
-    ## 38   -1.827329e-01    0.1648690125 1.0004427 2945.5521 2293.065
-    ## 39   -1.145019e-01    0.3093264999 1.0030419 1814.0635 2047.056
-    ## 40   -2.197962e-01    0.2596959513 1.0026746 1936.5454 2380.892
-    ## 41   -1.080074e-01    0.4513225123 1.0047948 1972.6156 2322.780
-    ## 42   -3.059155e-02    0.3165580389 1.0034896 1441.6064 1807.556
-    ## 43   -2.240122e-01    0.1401323749 1.0047621 1487.8330 2090.358
-    ## 44   -1.739434e-03    0.0026364756 1.0004570 3450.7995 2584.894
-    ## 45   -2.200895e-01    0.1356696043 1.0010213 1044.1125 1651.488
-    ## 46   -4.492198e-02    0.0887903153 1.0005203 1288.2232 1832.821
-    ## 47   -5.927704e-01   -0.2699564256 1.0010643 1014.5720 1398.972
-    ## 48   -1.657690e-01   -0.1003309134 1.0019306 2525.3589 2260.988
-    ## 49   -6.094109e-03    0.0614286899 1.0033711 2279.7544 2144.756
-    ## 50    9.219127e-05    0.0296719940 1.0000096 3023.2061 2566.483
-    ## 51   -2.025965e-01   -0.0302264515 1.0006707 2403.7725 1953.580
-    ## 52   -3.889979e-02    0.1555845225 1.0001605 3071.2392 2204.278
-    ## 53   -7.982794e-02    0.2151710297 1.0039951 2083.8846 1951.179
-    ## 54   -1.308014e-01   -0.0024997939 0.9999488 2747.8548 2069.847
-    ## 55   -8.418175e-02    0.0515675261 1.0003820 1493.7052 1971.461
-    ## 56   -1.381430e-01    0.0739930320 1.0010032 1653.1809 1738.630
-    ## 57   -1.172953e-02    0.0484066688 1.0005256 2794.9316 2040.227
-    ## 58   -1.860024e-01    0.0028046632 1.0000285 2662.5927 2112.822
-    ## 59   -5.359671e-02    0.1815968500 1.0009957 1625.5415 1944.228
-    ## 60   -9.236472e-02    0.1601728411 1.0003255 1318.9443 2205.781
-    ## 61   -2.015615e-01    0.0995596618 1.0001071 1924.1554 2111.383
-    ## 62   -4.106690e-02    0.1550393450 1.0006954 1196.7345 1925.471
-    ## 63   -8.415467e-02    0.1213510231 1.0004826 1353.0607 1775.581
+    ## 1                D3TCOMP_Intercept 2.526307e-03  ** -0.2353638089 0.077930583
+    ## 2                  D3TEM_Intercept 3.306428e-02   * -0.3322727131 0.155901294
+    ## 3                  D3TEF_Intercept 1.753800e-04 *** -0.3161855473 0.084269614
+    ## 4                D3TCOMP_ctq_total 9.339860e-02   . -0.0017713866 0.001055819
+    ## 5                D3TCOMP_B3TCOMPZ3 3.434017e-19 *** -0.7228967842 0.080736169
+    ## 6                  D3TCOMP_B3TEMZ3 8.578900e-01      0.0053744423 0.030014637
+    ## 7                  D3TCOMP_B3TEFZ3 2.054530e-03  **  0.2233442494 0.072461799
+    ## 8                D3TCOMP_B1PAGE_M2 4.636804e-19 *** -0.1343070107 0.015055791
+    ## 9                  D3TCOMP_B1PTSEI 1.826495e-01      0.0213984141 0.016057142
+    ## 10                   D3TCOMP_B1PB1 2.976242e-03  **  0.0203503200 0.006851542
+    ## 11                 D3TCOMP_B1PF7A2 9.516553e-03  ** -0.1061752512 0.040948176
+    ## 12                D3TCOMP_D1PB19M1 6.471680e-01     -0.0210676495 0.046029385
+    ## 13                 D3TCOMP_D1PB191 9.234111e-01     -0.0064158001 0.066735407
+    ## 14                D3TCOMP_B1PRSEX2 7.691643e-02   .  0.0555899602 0.031426912
+    ## 15     D3TCOMP_B1PA39former_smoker 7.906635e-01      0.0086385053 0.032542980
+    ## 16    D3TCOMP_B1PA39current_smoker 8.976589e-01     -0.0064354088 0.050034571
+    ## 17                D3TCOMP_B4HMETMW 1.281215e-01      0.0211613869 0.013907770
+    ## 18                D3TCOMP_B1SA11W1 3.237252e-02   * -0.0962954522 0.045002492
+    ## 19  D3TCOMP_B4ALCOHformer_moderate 1.479877e-01      0.0768355326 0.053111784
+    ## 20     D3TCOMP_B4ALCOHformer_heavy 7.956704e-01      0.0157701967 0.060899511
+    ## 21    D3TCOMP_B4ALCOHcurrent_light 8.256851e-01      0.0156822970 0.071205863
+    ## 22 D3TCOMP_B4ALCOHcurrent_moderate 2.868330e-02   *  0.0988799613 0.045195823
+    ## 23    D3TCOMP_B4ALCOHcurrent_heavy 8.987127e-01      0.0059569148 0.046798840
+    ## 24                 D3TEM_ctq_total 1.436979e-02   * -0.0050415081 0.002059537
+    ## 25                 D3TEM_B3TCOMPZ3 8.161332e-01      0.0385422673 0.165758045
+    ## 26                   D3TEM_B3TEMZ3 1.813174e-22 *** -0.6045891614 0.061998024
+    ## 27                   D3TEM_B3TEFZ3 4.540495e-01      0.1118093832 0.149341804
+    ## 28                 D3TEM_B1PAGE_M2 3.841528e-08 *** -0.1690583328 0.030749137
+    ## 29                   D3TEM_B1PTSEI 9.894500e-01      0.0004269643 0.032289889
+    ## 30                     D3TEM_B1PB1 2.411435e-01      0.0161712981 0.013796465
+    ## 31                   D3TEM_B1PF7A2 5.174442e-01      0.0521609191 0.080583530
+    ## 32                  D3TEM_D1PB19M1 2.825847e-01     -0.0980599675 0.091258368
+    ## 33                   D3TEM_D1PB191 9.681578e-01     -0.0054199279 0.135773678
+    ## 34                  D3TEM_B1PRSEX2 4.891982e-13 ***  0.4533777200 0.062722884
+    ## 35       D3TEM_B1PA39former_smoker 3.586126e-01      0.0601113557 0.065479921
+    ## 36      D3TEM_B1PA39current_smoker 2.677765e-01     -0.1097913592 0.099071998
+    ## 37                  D3TEM_B4HMETMW 6.635425e-02   .  0.0512022184 0.027887568
+    ## 38                  D3TEM_B1SA11W1 9.389037e-01     -0.0066825863 0.087185532
+    ## 39    D3TEM_B4ALCOHformer_moderate 3.293925e-01      0.1030966168 0.105703442
+    ## 40       D3TEM_B4ALCOHformer_heavy 8.083661e-01      0.0287069416 0.118362333
+    ## 41      D3TEM_B4ALCOHcurrent_light 2.063561e-01      0.1718411197 0.135988026
+    ## 42   D3TEM_B4ALCOHcurrent_moderate 9.341795e-02   .  0.1485228492 0.088530972
+    ## 43      D3TEM_B4ALCOHcurrent_heavy 6.960384e-01     -0.0354209853 0.090666408
+    ## 44                 D3TEF_ctq_total 6.975250e-01      0.0004486804 0.001154418
+    ## 45                 D3TEF_B3TCOMPZ3 6.882921e-01     -0.0357442275 0.089099086
+    ## 46                   D3TEF_B3TEMZ3 5.727972e-01      0.0186002851 0.032982931
+    ## 47                   D3TEF_B3TEFZ3 5.042881e-08 *** -0.4375142626 0.080280913
+    ## 48                 D3TEF_B1PAGE_M2 5.784265e-16 *** -0.1330498623 0.016438539
+    ## 49                   D3TEF_B1PTSEI 1.113335e-01      0.0279842777 0.017575547
+    ## 50                     D3TEF_B1PB1 4.396941e-02   *  0.0150001973 0.007446549
+    ## 51                   D3TEF_B1PF7A2 6.089280e-03  ** -0.1194286937 0.043540480
+    ## 52                  D3TEF_D1PB19M1 2.240996e-01      0.0604092767 0.049690986
+    ## 53                   D3TEF_D1PB191 3.967581e-01      0.0623493748 0.073575064
+    ## 54                  D3TEF_B1PRSEX2 4.402568e-02   * -0.0669332675 0.033236534
+    ## 55       D3TEF_B1PA39former_smoker 6.702227e-01     -0.0150605492 0.035366492
+    ## 56      D3TEF_B1PA39current_smoker 5.607828e-01     -0.0318791999 0.054805474
+    ## 57                  D3TEF_B4HMETMW 1.955925e-01      0.0189868425 0.014670592
+    ## 58                  D3TEF_B1SA11W1 5.947240e-02   . -0.0933633632 0.049537917
+    ## 59    D3TEF_B4ALCOHformer_moderate 2.589088e-01      0.0660697154 0.058521913
+    ## 60       D3TEF_B4ALCOHformer_heavy 6.463397e-01      0.0310802770 0.067734713
+    ## 61      D3TEF_B4ALCOHcurrent_light 4.833921e-01     -0.0542580553 0.077416700
+    ## 62   D3TEF_B4ALCOHcurrent_moderate 2.445258e-01      0.0569434624 0.048931061
+    ## 63      D3TEF_B4ALCOHcurrent_heavy 7.267603e-01      0.0178758627 0.051155987
+    ##    l_95_percent_ci u_95_percent_ci      rhat  bulk_ess  tail_ess
+    ## 1    -0.3868445085   -0.0851840410 1.0025516 1418.5187 1965.7418
+    ## 2    -0.6379399445   -0.0188528174 1.0006016 1849.6252 1854.4627
+    ## 3    -0.4788773248   -0.1505380853 1.0036426 1454.4122 2035.1499
+    ## 4    -0.0038968415    0.0002908402 1.0002029 2834.6699 2565.5354
+    ## 5    -0.8825137098   -0.5687637339 1.0010028  571.5610 1067.0410
+    ## 6    -0.0529724825    0.0631048272 1.0031760  677.8950 1331.2487
+    ## 7     0.0826995987    0.3670187391 1.0021691  612.2485 1144.3236
+    ## 8    -0.1640534721   -0.1062973717 1.0005362 1478.0814 2016.2773
+    ## 9    -0.0097373898    0.0531125087 1.0013847 1325.8060 1799.5427
+    ## 10    0.0064741791    0.0332172500 1.0022661 1700.6468 1861.8368
+    ## 11   -0.1850422233   -0.0258428042 1.0011562 1512.4140 1910.3766
+    ## 12   -0.1118187556    0.0699774932 1.0075472 1199.4117 1759.7103
+    ## 13   -0.1382187852    0.1237069144 1.0005003 1478.2985 2197.2758
+    ## 14   -0.0062148040    0.1170988007 1.0001391 1466.7474 1921.5226
+    ## 15   -0.0551935469    0.0717038725 1.0031590  875.0276 1436.2023
+    ## 16   -0.1039356412    0.0893014397 1.0013595  940.8219 1367.9182
+    ## 17   -0.0059427295    0.0483473890 1.0011538 1608.3831 1816.6643
+    ## 18   -0.1844699931   -0.0107399822 1.0006455 1746.2215 1824.7351
+    ## 19   -0.0267198539    0.1794099739 1.0028058  869.2644 1506.1998
+    ## 20   -0.1067089488    0.1323013126 1.0014684  806.1402 1621.9641
+    ## 21   -0.1274534144    0.1521711696 1.0021093 1000.4936 1582.9070
+    ## 22    0.0104049902    0.1846458244 1.0024858  628.7646 1264.1200
+    ## 23   -0.0842897349    0.0980203293 1.0028534  661.5278 1507.6225
+    ## 24   -0.0090795507   -0.0010204362 0.9993518 2865.8540 2431.8816
+    ## 25   -0.2803103920    0.3756887786 1.0023197  775.9178 1263.3638
+    ## 26   -0.7258269624   -0.4853837224 1.0017066  901.7512 1468.9630
+    ## 27   -0.1807829686    0.4061446514 1.0018206  806.2353 1177.7766
+    ## 28   -0.2303746705   -0.1097410372 1.0001325 2204.9642 2398.6267
+    ## 29   -0.0600826471    0.0639995134 0.9998737 1879.1938 2116.9354
+    ## 30   -0.0115975798    0.0432208645 1.0003125 1752.6215 1798.3503
+    ## 31   -0.1043960903    0.2074704868 1.0001394 2366.0080 2210.1158
+    ## 32   -0.2721672178    0.0800913064 1.0038268 1771.4992 2065.8019
+    ## 33   -0.2723241024    0.2548482315 1.0021144 2074.8116 2657.1259
+    ## 34    0.3294790191    0.5793314349 0.9998441 1988.1505 1922.4937
+    ## 35   -0.0623569232    0.1901909535 1.0005393 1558.9019 2121.1261
+    ## 36   -0.3040520989    0.0848546966 0.9998371 1653.3373 2042.9880
+    ## 37   -0.0044310402    0.1035686060 1.0022187 2357.8970 2344.1340
+    ## 38   -0.1756195881    0.1633648394 1.0005799 2637.8141 2467.8506
+    ## 39   -0.0957838310    0.3106821535 1.0010345 1159.2140 1865.6180
+    ## 40   -0.1964395079    0.2642173443 1.0013565 1354.6035 1900.5565
+    ## 41   -0.0942592662    0.4343869775 1.0005303 1441.8953 1699.3040
+    ## 42   -0.0299655601    0.3155221167 1.0011088 1026.2811 1710.5029
+    ## 43   -0.2169291493    0.1433313441 1.0003236 1045.7550 1795.6762
+    ## 44   -0.0017560628    0.0026625040 1.0007567 2940.9527 2570.9000
+    ## 45   -0.2116664308    0.1388277087 1.0007780  613.2384 1299.5007
+    ## 46   -0.0463148621    0.0840633590 1.0010734  727.0812 1413.9460
+    ## 47   -0.5938296147   -0.2752274161 1.0004319  648.4175 1329.6297
+    ## 48   -0.1654845639   -0.1009618833 1.0000748 1744.8205 1859.3539
+    ## 49   -0.0068565669    0.0625857662 1.0001281 1841.1399 1806.4089
+    ## 50    0.0006120923    0.0294078137 1.0012802 1850.2850 2233.3094
+    ## 51   -0.2038929667   -0.0349011580 1.0015901 1641.0224 1782.3408
+    ## 52   -0.0365779665    0.1576742255 1.0046217 1501.2728 1925.1134
+    ## 53   -0.0824747528    0.2049930385 1.0002557 1688.5758 2123.0496
+    ## 54   -0.1316807880   -0.0021820705 1.0001482 1825.0096 2309.9386
+    ## 55   -0.0847157240    0.0549548414 1.0005960 1079.8865 1589.8105
+    ## 56   -0.1404179649    0.0738313060 1.0018553 1189.7750 1763.3088
+    ## 57   -0.0094765944    0.0474161753 1.0017597 1945.8320 2310.4474
+    ## 58   -0.1896096116    0.0018836438 1.0000170 2058.2997 1984.4168
+    ## 59   -0.0510507504    0.1769101812 1.0025763  878.1562 1827.5946
+    ## 60   -0.1041327480    0.1612053505 1.0010788  863.3733 1587.1740
+    ## 61   -0.2021519890    0.0964239352 1.0010684 1092.0292 1837.6350
+    ## 62   -0.0397673901    0.1528343485 1.0022164  687.0957  961.4746
+    ## 63   -0.0814658296    0.1197456013 1.0032079  706.4619 1342.9127
+
+May try
+[MCMCglmm](http://cran.nexr.com/web/packages/MCMCglmm/vignettes/CourseNotes.pdf)
+packages since `brms` takes a long time. Need to tune the prior
+distribution for the function to work properly.
+
+``` r
+# settings
+full_df_no_invalid_mcmc = as.data.frame(full_df_no_invalid) # need dataframe instead of tibble
+family_set = c("gaussian", "gaussian", "gaussian")  # response variable categories
+
+# fitting the model
+fit_mcmc = MCMCglmm(cbind(D3TCOMP, D3TEM, D3TEF) ~ ctq_total + B3TCOMPZ3 + B3TEMZ3 + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH, random = ~us(trait):M2FAMNUM, rcov = ~us(trait):units, data = full_df_no_invalid_mcmc, family = family_set, verbose = FALSE)
+```

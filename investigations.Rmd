@@ -5,9 +5,11 @@ date: "5/11/2022"
 output: github_document
 ---
 
-**7.7 Updates** (all updates are located at the bottom of this document):
+**7.7/7.14 Updates** (all updates are located at the bottom of this document):
+
 1. Moderator effects of self-administered drugs are investigated and reported.
-2. I also explored another method called "multivariate regression method", which takes all three independent variables as the outcome variables while fitting other dependent variables as either predictors or covariates (details see below). 
+
+2. I also explored another method called "multivariate multilevel regression", which takes all three independent variables as the outcome variables while fitting other dependent variables as either predictors or covariates (details see below). 
 
 ```{r setup, include=FALSE}
 library(tidyverse)
@@ -708,19 +710,21 @@ anova(lmm3_9_base, lmm3_9_a)
 ```
 
 
-## Multivariate Regression Models
-This method is also new to me, but I would like to want to explore the possibilities of combining the three independent variables (Composite scores, Episodic Memory, Executive Functioning) and see what are the outcomes. Thus, here I introduce the concept of "multivariate regression", where multiple variables can be found on the LHS of the equation. 
+## Multivariate Multilevel Regression Models
+This method is also new to me, but I would like to want to explore the possibilities of combining the three independent variables (Composite scores, Episodic Memory, Executive Functioning) and see what are the outcomes. Thus, here I introduce the concept of "multivariate multilevel regression", where multiple variables can be found on the LHS of the equation (i.e. multiple independent variables). 
 
 For implementation, I used the library `brms`. Here is my [reference](https://cran.r-project.org/web/packages/brms/vignettes/brms_multivariate.html)
-```{r}
+```{r, eval = FALSE}
 # multivariate normal model
 bform1 = bf(mvbind(D3TCOMP, D3TEM, D3TEF) ~ ctq_total + B3TCOMPZ3 + B3TEMZ3 + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + (1|p|M2FAMNUM)) + 
   set_rescor(TRUE) # we don't have missing values in predictors
 
 fit1 = brm(bform1, data = full_df_no_invalid, chains = 3, cores = 4)
+fit = add_criterion(fit1, "loo")
 ```
 ```{r}
-fit = add_criterion(fit1, "loo")
+#saveRDS(fit, "./results/fit.rds")
+fit = readRDS("./results/fit.rds")
 sum_fit = summary(fit)
 ```
 
@@ -737,6 +741,17 @@ sum_fit$fixed %>%
                          p_val >= 0.1 ~ "")) %>% 
   select(rowname, p_val, sig, everything())
 ```
+
+May try [MCMCglmm](http://cran.nexr.com/web/packages/MCMCglmm/vignettes/CourseNotes.pdf) packages since `brms` takes a long time. Need to tune the prior distribution for the function to work properly. 
+```{r, eval = FALSE}
+# settings
+full_df_no_invalid_mcmc = as.data.frame(full_df_no_invalid) # need dataframe instead of tibble
+family_set = c("gaussian", "gaussian", "gaussian")  # response variable categories
+
+# fitting the model
+fit_mcmc = MCMCglmm(cbind(D3TCOMP, D3TEM, D3TEF) ~ ctq_total + B3TCOMPZ3 + B3TEMZ3 + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH, random = ~us(trait):M2FAMNUM, rcov = ~us(trait):units, data = full_df_no_invalid_mcmc, family = family_set, verbose = FALSE)
+```
+
 
 
 
