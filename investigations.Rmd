@@ -710,8 +710,15 @@ anova(lmm3_9_base, lmm3_9_a)
 ```
 
 
-## Multivariate Multilevel Regression Models
+## Multivariate Multiple/Multilevel Regression Models
 This method is also new to me, but I would like to want to explore the possibilities of combining the three independent variables (Composite scores, Episodic Memory, Executive Functioning) and see what are the outcomes. Thus, here I introduce the concept of "multivariate multilevel regression", where multiple variables can be found on the LHS of the equation (i.e. multiple independent variables). 
+
+**What's the difference: **
+
+* Multiple regression model: we have only *one* dependent variable $Y$ and multiple independent variables $X's$. We are modeling the linear relationship between the outcome and the predictor, while adjusting for other covariates. 
+
+* Multivariate regression model: we have *multiple* dependent variables $Y's$ and multiple $X's$. The joint mean of the multiple dependent variables is being predicted by the independent variables. We are modeling the *variance-covariance matrix* in the set of $Y's$, that is, we are able to know the covariance between our three dependent variables ($\Delta$Composite Score, $\Delta$Episodic Memory, $\Delta$Executive Function). But, does that improve the results or does that help us with the modeling? By now I only found the ability to model a joint distribution may be the biggest advantage of using this method.
+
 
 For implementation, I used the library `brms`. Here is my [reference](https://cran.r-project.org/web/packages/brms/vignettes/brms_multivariate.html)
 ```{r, eval = FALSE}
@@ -727,8 +734,15 @@ fit = add_criterion(fit1, "loo")
 fit = readRDS("./results/fit.rds")
 sum_fit = summary(fit)
 ```
+```{r}
+# some statistics to ponder about
+corr_results = VarCorr(fit)
+corr_results$M2FAMNUM$cor # correlation
+corr_results$M2FAMNUM$cov # covariance matrix
+```
 
-"p-value" in multivariate models' results? Here is some very primitive way of calculating the p-value (I will explore more). 
+
+"p-value" in multivariate models' results? Here is some very primitive way of calculating the p-value.
 ```{r}
 sum_fit$fixed %>% 
   rownames_to_column() %>% 

@@ -1147,7 +1147,7 @@ anova(lmm3_9_base, lmm3_9_a)
     ## lmm3_9_base     1 22 994.4434 1099.274 -475.2217                        
     ## lmm3_9_a        2 23 992.9290 1102.525 -473.4645 1 vs 2 3.514465  0.0608
 
-## Multivariate Multilevel Regression Models
+## Multivariate Multiple/Multilevel Regression Models
 
 This method is also new to me, but I would like to want to explore the
 possibilities of combining the three independent variables (Composite
@@ -1155,6 +1155,24 @@ scores, Episodic Memory, Executive Functioning) and see what are the
 outcomes. Thus, here I introduce the concept of “multivariate multilevel
 regression”, where multiple variables can be found on the LHS of the
 equation (i.e. multiple independent variables).
+
+**What’s the difference: **
+
+-   Multiple regression model: we have only *one* dependent variable *Y*
+    and multiple independent variables *X*′*s*. We are modeling the
+    linear relationship between the outcome and the predictor, while
+    adjusting for other covariates.
+
+-   Multivariate regression model: we have *multiple* dependent
+    variables *Y*′*s* and multiple *X*′*s*. The joint mean of the
+    multiple dependent variables is being predicted by the independent
+    variables. We are modeling the *variance-covariance matrix* in the
+    set of *Y*′*s*, that is, we are able to know the covariance between
+    our three dependent variables (*Δ*Composite Score, *Δ*Episodic
+    Memory, *Δ*Executive Function). But, does that improve the results
+    or does that help us with the modeling? By now I only found the
+    ability to model a joint distribution may be the biggest advantage
+    of using this method.
 
 For implementation, I used the library `brms`. Here is my
 [reference](https://cran.r-project.org/web/packages/brms/vignettes/brms_multivariate.html)
@@ -1174,8 +1192,60 @@ fit = readRDS("./results/fit.rds")
 sum_fit = summary(fit)
 ```
 
+``` r
+# some statistics to ponder about
+corr_results = VarCorr(fit)
+corr_results$M2FAMNUM$cor # correlation
+```
+
+    ## , , D3TCOMP_Intercept
+    ## 
+    ##                    Estimate Est.Error       Q2.5     Q97.5
+    ## D3TCOMP_Intercept 1.0000000 0.0000000  1.0000000 1.0000000
+    ## D3TEM_Intercept   0.6095168 0.3039712 -0.3028115 0.9367953
+    ## D3TEF_Intercept   0.6777089 0.3731085 -0.4843934 0.9772467
+    ## 
+    ## , , D3TEM_Intercept
+    ## 
+    ##                    Estimate Est.Error       Q2.5     Q97.5
+    ## D3TCOMP_Intercept 0.6095168 0.3039712 -0.3028115 0.9367953
+    ## D3TEM_Intercept   1.0000000 0.0000000  1.0000000 1.0000000
+    ## D3TEF_Intercept   0.3108153 0.3943999 -0.6686991 0.8998007
+    ## 
+    ## , , D3TEF_Intercept
+    ## 
+    ##                    Estimate Est.Error       Q2.5     Q97.5
+    ## D3TCOMP_Intercept 0.6777089 0.3731085 -0.4843934 0.9772467
+    ## D3TEM_Intercept   0.3108153 0.3943999 -0.6686991 0.8998007
+    ## D3TEF_Intercept   1.0000000 0.0000000  1.0000000 1.0000000
+
+``` r
+corr_results$M2FAMNUM$cov # covariance matrix
+```
+
+    ## , , D3TCOMP_Intercept
+    ## 
+    ##                     Estimate  Est.Error          Q2.5      Q97.5
+    ## D3TCOMP_Intercept 0.03217011 0.02037330  0.0002976772 0.07173461
+    ## D3TEM_Intercept   0.04197124 0.02789588 -0.0019332747 0.09625821
+    ## D3TEF_Intercept   0.02511684 0.01887425 -0.0009022000 0.06200536
+    ## 
+    ## , , D3TEM_Intercept
+    ## 
+    ##                     Estimate  Est.Error         Q2.5      Q97.5
+    ## D3TCOMP_Intercept 0.04197124 0.02789588 -0.001933275 0.09625821
+    ## D3TEM_Intercept   0.12446849 0.05921995  0.015388908 0.24019557
+    ## D3TEF_Intercept   0.02150779 0.02279131 -0.015897159 0.06866607
+    ## 
+    ## , , D3TEF_Intercept
+    ## 
+    ##                     Estimate  Est.Error          Q2.5      Q97.5
+    ## D3TCOMP_Intercept 0.02511684 0.01887425 -9.022000e-04 0.06200536
+    ## D3TEM_Intercept   0.02150779 0.02279131 -1.589716e-02 0.06866607
+    ## D3TEF_Intercept   0.03022686 0.02108139  6.887546e-05 0.07326579
+
 “p-value” in multivariate models’ results? Here is some very primitive
-way of calculating the p-value (I will explore more).
+way of calculating the p-value.
 
 ``` r
 sum_fit$fixed %>% 
