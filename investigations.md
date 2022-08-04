@@ -1156,6 +1156,14 @@ outcomes. Thus, here I introduce the concept of “multivariate multilevel
 regression”, where multiple variables can be found on the LHS of the
 equation (i.e. multiple independent variables).
 
+-   When do we use multivariate regression model
+    [(ref)](https://www.analyticsvidhya.com/blog/2022/01/a-brief-introduction-to-multilevel-modelling/#:~:text=Advantages%20of%20Multilevel%20Modelling&text=Better%20inferences%3A%20A%20multilevel%20regression,and%20overstatement%20of%20coefficient%20significance.):
+    When individual data is collected from a random sample of clusters
+    (schools, areas, hospitals) at one point in time then observations
+    within these clusters are more likely to be similar. Here,
+    participants from different families might perform differently in
+    tests, thus having different scores.
+
 **What’s the difference: **
 
 -   Multiple regression model: we have only *one* dependent variable *Y*
@@ -1191,6 +1199,9 @@ fit = add_criterion(fit1, "loo")
 fit = readRDS("./results/fit.rds")
 sum_fit = summary(fit)
 ```
+
+The multivariate multilevel model produced somewhat similar results to
+the LMM model. In terms of why we are using the
 
 ``` r
 # some statistics to ponder about
