@@ -359,6 +359,14 @@ full_df_no_invalid =  full_df_no_invalid %>%
 #write.csv(full_df_no_invalid, "./data/full_df_inval.csv")
 ```
 
+``` r
+table(full_df_no_invalid$D1PA6A)
+```
+
+    ## 
+    ##   0   1 
+    ## 845  22
+
 # Modeling
 
 I completely filter out all the observations with at least one invalid
@@ -420,6 +428,41 @@ summary(lmm_base_3)$tTable %>%
 | B3TEFZ3     | -0.3756244 | 0.0176892 |  99 | -21.2347179 | 0.0000000 |
 
 Base Model - Executive Function (*Δ*)
+
+``` r
+full_df_test = read_csv("./data/full_df.csv") %>% 
+  select(-1)
+# D3TCOMP
+full_df_test %>% 
+  select(D3TCOMP, B1PAGE_M2) %>% 
+  ggplot(aes(x = B1PAGE_M2, y = D3TCOMP)) + 
+  geom_point() +
+  geom_smooth(aes(color = 'red'))
+```
+
+![](investigations_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+
+``` r
+# D3TEF
+full_df_no_invalid %>% 
+  select(D3TEF, ctq_total) %>% 
+  ggplot(aes(x = ctq_total, y = D3TEF)) + 
+  geom_point() +
+  geom_smooth(aes(color = 'red'))
+```
+
+![](investigations_files/figure-gfm/unnamed-chunk-15-2.png)<!-- -->
+
+``` r
+# D3TEM
+full_df_no_invalid %>% 
+  select(D3TEM, ctq_total) %>% 
+  ggplot(aes(x = ctq_total, y = D3TEM)) + 
+  geom_point() +
+  geom_smooth(aes(color = 'red'))
+```
+
+![](investigations_files/figure-gfm/unnamed-chunk-15-3.png)<!-- -->
 
 ## Adding more covariates (LMM)
 
@@ -598,19 +641,19 @@ Check model assumptions
 plot(lmm1, main = "Change in Composite Scores: resid vs. fitted")
 ```
 
-![](investigations_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
+![](investigations_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
 
 ``` r
 plot(lmm2, main = "Change in Episodic Memory: resid vs. fitted")
 ```
 
-![](investigations_files/figure-gfm/unnamed-chunk-15-2.png)<!-- -->
+![](investigations_files/figure-gfm/unnamed-chunk-19-2.png)<!-- -->
 
 ``` r
 plot(lmm3, main = "Change in Executive Function: resid vs. fitted")
 ```
 
-![](investigations_files/figure-gfm/unnamed-chunk-15-3.png)<!-- -->
+![](investigations_files/figure-gfm/unnamed-chunk-19-3.png)<!-- -->
 
 # Modifiers
 
@@ -1147,6 +1190,414 @@ anova(lmm3_9_base, lmm3_9_a)
     ## lmm3_9_base     1 22 994.4434 1099.274 -475.2217                        
     ## lmm3_9_a        2 23 992.9290 1102.525 -473.4645 1 vs 2 3.514465  0.0608
 
+## Multilevel Models
+
+This method is similar to what was implemented in the paper by Lynch &
+Lachman, 2020, that is, a multilevel model with level 1 slope (non
+time-varying) and level 2 random intercept (different for each family).
+The residual *ϵ* is also assumed to be not random (estimated based on
+the overall sample). Compared to the methods conceived/used earlier, I
+agree that this one would makes more sense conceptually, in the way that
+both the baseline and change in time will be taken into account.
+
+### random intercept model (the very basic)
+
+Change in Composite Scores
+
+``` r
+lmm_model1_cs <- lmer(D3TCOMP ~ ctq_total+(1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)  # random intercept vary across families about 0.053
+summary(lmm_model1_cs)
+```
+
+    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
+    ##   method [lmerModLmerTest]
+    ## Formula: D3TCOMP ~ ctq_total + (1 | M2FAMNUM)
+    ##    Data: full_df_no_invalid
+    ## 
+    ##      AIC      BIC   logLik deviance df.resid 
+    ##   1488.5   1507.6   -740.3   1480.5      863 
+    ## 
+    ## Scaled residuals: 
+    ##     Min      1Q  Median      3Q     Max 
+    ## -2.8787 -0.6256  0.0343  0.5901  3.6018 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  M2FAMNUM (Intercept) 0.0533   0.2309  
+    ##  Residual             0.2707   0.5203  
+    ## Number of obs: 867, groups:  M2FAMNUM, 766
+    ## 
+    ## Fixed effects:
+    ##               Estimate Std. Error         df t value Pr(>|t|)    
+    ## (Intercept)  -0.217921   0.057566 797.283589  -3.786 0.000165 ***
+    ## ctq_total     0.000527   0.001411 813.817554   0.373 0.708961    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Correlation of Fixed Effects:
+    ##           (Intr)
+    ## ctq_total -0.940
+
+Change in Episodic Memory
+
+``` r
+lmm_model1_em <- lmer(D3TEM ~ ctq_total+(1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+summary(lmm_model1_em)
+```
+
+    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
+    ##   method [lmerModLmerTest]
+    ## Formula: D3TEM ~ ctq_total + (1 | M2FAMNUM)
+    ##    Data: full_df_no_invalid
+    ## 
+    ##      AIC      BIC   logLik deviance df.resid 
+    ##   2309.6   2328.7  -1150.8   2301.6      863 
+    ## 
+    ## Scaled residuals: 
+    ##     Min      1Q  Median      3Q     Max 
+    ## -3.3256 -0.5824 -0.0084  0.5443  3.5253 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  M2FAMNUM (Intercept) 0.04785  0.2187  
+    ##  Residual             0.78511  0.8861  
+    ## Number of obs: 867, groups:  M2FAMNUM, 766
+    ## 
+    ## Fixed effects:
+    ##               Estimate Std. Error         df t value Pr(>|t|)
+    ## (Intercept)  -0.004887   0.091655 773.560037  -0.053    0.957
+    ## ctq_total    -0.002830   0.002250 791.962700  -1.258    0.209
+    ## 
+    ## Correlation of Fixed Effects:
+    ##           (Intr)
+    ## ctq_total -0.940
+
+Change in Executive Functioning
+
+``` r
+lmm_model1_ef <- lmer(D3TEF ~ ctq_total+(1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+summary(lmm_model1_ef)
+```
+
+    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
+    ##   method [lmerModLmerTest]
+    ## Formula: D3TEF ~ ctq_total + (1 | M2FAMNUM)
+    ##    Data: full_df_no_invalid
+    ## 
+    ##      AIC      BIC   logLik deviance df.resid 
+    ##   1425.8   1444.9   -708.9   1417.8      863 
+    ## 
+    ## Scaled residuals: 
+    ##     Min      1Q  Median      3Q     Max 
+    ## -3.6579 -0.5578 -0.0172  0.5470  2.9257 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  M2FAMNUM (Intercept) 0.08135  0.2852  
+    ##  Residual             0.22176  0.4709  
+    ## Number of obs: 867, groups:  M2FAMNUM, 766
+    ## 
+    ## Fixed effects:
+    ##               Estimate Std. Error         df t value Pr(>|t|)    
+    ## (Intercept)  -0.439540   0.055936 815.718068  -7.858 1.23e-14 ***
+    ## ctq_total     0.002512   0.001370 829.690421   1.834   0.0671 .  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Correlation of Fixed Effects:
+    ##           (Intr)
+    ## ctq_total -0.939
+
+### Add level 1 predictors (ctq_total and the covariates)
+
+Change in Composite Scores
+
+``` r
+lmm_model2_cs <- lmer(D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm_model1_cs, lmm_model2_cs)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm_model1_cs: D3TCOMP ~ ctq_total + (1 | M2FAMNUM)
+    ## lmm_model2_cs: D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM)
+    ##               npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)    
+    ## lmm_model1_cs    4 1488.5 1507.6 -740.27   1480.5                         
+    ## lmm_model2_cs   19 1475.3 1565.9 -718.67   1437.3 43.197 15  0.0001467 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Change in Episodic Memory
+
+``` r
+lmm_model2_em <- lmer(D3TEM ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm_model1_em, lmm_model2_em)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm_model1_em: D3TEM ~ ctq_total + (1 | M2FAMNUM)
+    ## lmm_model2_em: D3TEM ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM)
+    ##               npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)   
+    ## lmm_model1_em    4 2309.6 2328.7 -1150.8   2301.6                        
+    ## lmm_model2_em   19 2302.2 2392.7 -1132.1   2264.2 37.433 15   0.001094 **
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Change in Executive Functioning
+
+``` r
+lmm_model2_ef <- lmer(D3TEF ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm_model1_ef, lmm_model2_ef)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm_model1_ef: D3TEF ~ ctq_total + (1 | M2FAMNUM)
+    ## lmm_model2_ef: D3TEF ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM)
+    ##               npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)  
+    ## lmm_model1_ef    4 1425.8 1444.8 -708.90   1417.8                       
+    ## lmm_model2_ef   19 1427.7 1518.2 -694.84   1389.7 28.108 15    0.02091 *
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+### Add level 2 predictors - the baseline
+
+Change in Composite Scores
+
+``` r
+lmm_model3_cs <- lmer(D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM) + B3TCOMPZ3, REML = FALSE, data = full_df_no_invalid)
+anova(lmm_model2_cs, lmm_model3_cs)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm_model2_cs: D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM)
+    ## lmm_model3_cs: D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM) + B3TCOMPZ3
+    ##               npar     AIC     BIC  logLik deviance  Chisq Df Pr(>Chisq)    
+    ## lmm_model2_cs   19 1475.35 1565.88 -718.67  1437.35                         
+    ## lmm_model3_cs   20  878.13  973.43 -419.07   838.13 599.22  1  < 2.2e-16 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+``` r
+summary(lmm_model3_cs)
+```
+
+    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
+    ##   method [lmerModLmerTest]
+    ## Formula: D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI +  
+    ##     B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM) +  
+    ##     B3TCOMPZ3
+    ##    Data: full_df_no_invalid
+    ## 
+    ##      AIC      BIC   logLik deviance df.resid 
+    ##    878.1    973.4   -419.1    838.1      847 
+    ## 
+    ## Scaled residuals: 
+    ##     Min      1Q  Median      3Q     Max 
+    ## -2.9562 -0.5595  0.0018  0.5388  3.6881 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  M2FAMNUM (Intercept) 0.04898  0.2213  
+    ##  Residual             0.10689  0.3269  
+    ## Number of obs: 867, groups:  M2FAMNUM, 766
+    ## 
+    ## Fixed effects:
+    ##                           Estimate Std. Error         df t value Pr(>|t|)    
+    ## (Intercept)              -0.043399   0.055511 817.729430  -0.782  0.43455    
+    ## ctq_total                -0.001980   0.001045 838.127269  -1.894  0.05853 .  
+    ## B1PRSEX2                  0.014670   0.028941 843.082827   0.507  0.61236    
+    ## B1PAGE_M2                -0.138540   0.015291 776.047203  -9.060  < 2e-16 ***
+    ## B1PF7A2                  -0.118582   0.040490 840.862430  -2.929  0.00350 ** 
+    ## B1PTSEI                   0.045196   0.014392 849.183342   3.140  0.00175 ** 
+    ## B1PA39former_smoker       0.005931   0.032907 853.508701   0.180  0.85701    
+    ## B1PA39current_smoker     -0.023790   0.049500 865.337597  -0.481  0.63092    
+    ## B4ALCOHformer_moderate    0.095485   0.053760 866.995656   1.776  0.07606 .  
+    ## B4ALCOHformer_heavy       0.027585   0.059898 866.473179   0.461  0.64525    
+    ## B4ALCOHcurrent_light      0.045482   0.069263 859.060369   0.657  0.51158    
+    ## B4ALCOHcurrent_moderate   0.115846   0.044896 866.975956   2.580  0.01003 *  
+    ## B4ALCOHcurrent_heavy      0.016377   0.046654 865.452917   0.351  0.72565    
+    ## D1PB19-1                 -0.021932   0.045338 861.218366  -0.484  0.62869    
+    ## D1PB191                   0.015749   0.066899 795.968507   0.235  0.81394    
+    ## B4HMETMW                  0.020858   0.013562 835.558578   1.538  0.12442    
+    ## B1SA11W1                 -0.099586   0.044547 866.574916  -2.236  0.02564 *  
+    ## B3TCOMPZ3                -0.510601   0.017296 863.675532 -29.520  < 2e-16 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Change in Episodic Memory
+
+``` r
+lmm_model3_em <- lmer(D3TEM ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM) + B3TEMZ3, REML = FALSE, data = full_df_no_invalid)
+anova(lmm_model2_cs, lmm_model3_cs)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm_model2_cs: D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM)
+    ## lmm_model3_cs: D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM) + B3TCOMPZ3
+    ##               npar     AIC     BIC  logLik deviance  Chisq Df Pr(>Chisq)    
+    ## lmm_model2_cs   19 1475.35 1565.88 -718.67  1437.35                         
+    ## lmm_model3_cs   20  878.13  973.43 -419.07   838.13 599.22  1  < 2.2e-16 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+``` r
+summary(lmm_model3_em)
+```
+
+    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
+    ##   method [lmerModLmerTest]
+    ## Formula: D3TEM ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI +  
+    ##     B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM) +  
+    ##     B3TEMZ3
+    ##    Data: full_df_no_invalid
+    ## 
+    ##      AIC      BIC   logLik deviance df.resid 
+    ##   2064.4   2159.7  -1012.2   2024.4      847 
+    ## 
+    ## Scaled residuals: 
+    ##      Min       1Q   Median       3Q      Max 
+    ## -2.56500 -0.58283 -0.07122  0.48971  2.70526 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  M2FAMNUM (Intercept) 0.1829   0.4277  
+    ##  Residual             0.4287   0.6547  
+    ## Number of obs: 867, groups:  M2FAMNUM, 766
+    ## 
+    ## Fixed effects:
+    ##                           Estimate Std. Error         df t value Pr(>|t|)    
+    ## (Intercept)              -0.131918   0.109007 821.305686  -1.210  0.22656    
+    ## ctq_total                -0.005638   0.002067 840.291781  -2.727  0.00652 ** 
+    ## B1PRSEX2                  0.415017   0.060005 851.651561   6.916 9.10e-12 ***
+    ## B1PAGE_M2                -0.206307   0.028999 774.266827  -7.114 2.56e-12 ***
+    ## B1PF7A2                  -0.040104   0.077214 843.419426  -0.519  0.60362    
+    ## B1PTSEI                   0.043627   0.027956 851.227548   1.561  0.11900    
+    ## B1PA39former_smoker       0.053746   0.065302 856.057552   0.823  0.41072    
+    ## B1PA39current_smoker     -0.134904   0.098099 866.136979  -1.375  0.16943    
+    ## B4ALCOHformer_moderate    0.125141   0.106559 866.876423   1.174  0.24056    
+    ## B4ALCOHformer_heavy       0.049753   0.118704 866.948709   0.419  0.67522    
+    ## B4ALCOHcurrent_light      0.198692   0.137382 862.033972   1.446  0.14846    
+    ## B4ALCOHcurrent_moderate   0.184360   0.088960 866.873968   2.072  0.03852 *  
+    ## B4ALCOHcurrent_heavy     -0.019190   0.092443 864.674947  -0.208  0.83560    
+    ## D1PB19-1                 -0.111165   0.089828 862.455162  -1.238  0.21623    
+    ## D1PB191                   0.005213   0.132728 808.829953   0.039  0.96868    
+    ## B4HMETMW                  0.053842   0.026894 841.649758   2.002  0.04561 *  
+    ## B1SA11W1                 -0.009451   0.088285 866.854524  -0.107  0.91477    
+    ## B3TEMZ3                  -0.551430   0.032656 848.576769 -16.886  < 2e-16 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Change in Executive Functioning
+
+``` r
+lmm_model3_ef <- lmer(D3TEF ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM) + B3TEFZ3, REML = FALSE, data = full_df_no_invalid)
+anova(lmm_model2_ef, lmm_model3_ef)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm_model2_ef: D3TEF ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM)
+    ## lmm_model3_ef: D3TEF ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM) + B3TEFZ3
+    ##               npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)    
+    ## lmm_model2_ef   19 1427.7 1518.2 -694.84  1389.68                         
+    ## lmm_model3_ef   20 1001.1 1096.4 -480.56   961.12 428.56  1  < 2.2e-16 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+``` r
+summary(lmm_model3_ef)
+```
+
+    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
+    ##   method [lmerModLmerTest]
+    ## Formula: D3TEF ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI +  
+    ##     B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM) +  
+    ##     B3TEFZ3
+    ##    Data: full_df_no_invalid
+    ## 
+    ##      AIC      BIC   logLik deviance df.resid 
+    ##   1001.1   1096.4   -480.6    961.1      847 
+    ## 
+    ## Scaled residuals: 
+    ##     Min      1Q  Median      3Q     Max 
+    ## -4.7053 -0.5046  0.0246  0.5808  3.1750 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  M2FAMNUM (Intercept) 0.04655  0.2157  
+    ##  Residual             0.13236  0.3638  
+    ## Number of obs: 867, groups:  M2FAMNUM, 766
+    ## 
+    ## Fixed effects:
+    ##                           Estimate Std. Error         df t value Pr(>|t|)    
+    ## (Intercept)             -1.932e-01  5.969e-02  8.128e+02  -3.236  0.00126 ** 
+    ## ctq_total                3.355e-04  1.119e-03  8.344e+02   0.300  0.76439    
+    ## B1PRSEX2                -6.495e-02  3.092e-02  8.414e+02  -2.101  0.03597 *  
+    ## B1PAGE_M2               -1.322e-01  1.637e-02  7.796e+02  -8.075 2.55e-15 ***
+    ## B1PF7A2                 -1.209e-01  4.337e-02  8.409e+02  -2.789  0.00541 ** 
+    ## B1PTSEI                  4.409e-02  1.544e-02  8.578e+02   2.855  0.00440 ** 
+    ## B1PA39former_smoker     -2.010e-02  3.537e-02  8.617e+02  -0.568  0.57001    
+    ## B1PA39current_smoker    -4.261e-02  5.317e-02  8.670e+02  -0.801  0.42315    
+    ## B4ALCOHformer_moderate   6.649e-02  5.770e-02  8.662e+02   1.152  0.24947    
+    ## B4ALCOHformer_heavy      2.388e-02  6.435e-02  8.670e+02   0.371  0.71066    
+    ## B4ALCOHcurrent_light    -4.960e-02  7.443e-02  8.650e+02  -0.666  0.50536    
+    ## B4ALCOHcurrent_moderate  5.799e-02  4.822e-02  8.663e+02   1.203  0.22938    
+    ## B4ALCOHcurrent_heavy     1.775e-02  5.006e-02  8.628e+02   0.355  0.72295    
+    ## D1PB19-1                 5.763e-02  4.869e-02  8.639e+02   1.184  0.23692    
+    ## D1PB191                  7.774e-02  7.209e-02  8.207e+02   1.078  0.28115    
+    ## B4HMETMW                 1.722e-02  1.459e-02  8.463e+02   1.180  0.23837    
+    ## B1SA11W1                -9.461e-02  4.783e-02  8.670e+02  -1.978  0.04824 *  
+    ## B3TEFZ3                 -4.569e-01  1.940e-02  8.534e+02 -23.546  < 2e-16 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+**Interpretation:**
+
+Take the last table for example (dependent variable: change in EF):
+
+                         Estimate   Std. Error       df   t value Pr(>|t|)  
+                         
+
+B1PAGE_M2 -1.322e-01 1.637e-02 7.796e+02 -8.075 2.55e-15 \*** B1PTSEI
+4.409e-02 1.544e-02 8.578e+02 2.855 0.00440 **
+
+My interpretation is: age significantly predicts the change in executive
+functioning, i.e. on average, 1 year increase of age will result in
+0.132 more decline in Executive Functioning scores. Similarly, SES
+significantly predicts the change in executive functioning, i.e. on
+average, 1 unit increase in SES will result in 0.0441 more increase in
+the Executive Functioning scores.
+
+For those insignificant results, the interpretation will thus be: the
+<independent variable> did not significantly predict the
+<dependent variable>. For example, the ctq_total did not significantly
+predict the change in executive functioning.
+
+**For Discussion:**
+
+*1. What does the “time” variable mean in the Lynch & Lachmen’s paper?
+Would it be useful to include?*
+
+I think it means the time between M2 and M3. Thus, can we include this
+to our analysis? I lean to the answer “yes” since it intuitively makes
+sense that people may have change in cognitive function over the period
+of \~10 years.
+
+*2. Would adding interaction terms to “ctq_total” make sense?*
+
+e.g. age and ctq_total. Maybe age groups, since my intuition is that
+cognitive functioning not necessarily decrease with increase of age:
+people may perform better in the tests in their 30’s in M3 than 10 years
+ago in their 20’s. These kinds of relationship may be masked in previous
+steps and could be observed through stratification. However, the problem
+is that the age group cutoff can be fairly arbitrary.
+
+*3. Modification effect, still need more research.*
+
 ## Multivariate Multiple/Multilevel Regression Models
 
 This method is also new to me, but I would like to want to explore the
@@ -1200,60 +1651,12 @@ fit = readRDS("./results/fit.rds")
 sum_fit = summary(fit)
 ```
 
-The multivariate multilevel model produced somewhat similar results to
-the LMM model. In terms of why we are using the
-
 ``` r
 # some statistics to ponder about
 corr_results = VarCorr(fit)
 corr_results$M2FAMNUM$cor # correlation
-```
-
-    ## , , D3TCOMP_Intercept
-    ## 
-    ##                    Estimate Est.Error       Q2.5     Q97.5
-    ## D3TCOMP_Intercept 1.0000000 0.0000000  1.0000000 1.0000000
-    ## D3TEM_Intercept   0.6095168 0.3039712 -0.3028115 0.9367953
-    ## D3TEF_Intercept   0.6777089 0.3731085 -0.4843934 0.9772467
-    ## 
-    ## , , D3TEM_Intercept
-    ## 
-    ##                    Estimate Est.Error       Q2.5     Q97.5
-    ## D3TCOMP_Intercept 0.6095168 0.3039712 -0.3028115 0.9367953
-    ## D3TEM_Intercept   1.0000000 0.0000000  1.0000000 1.0000000
-    ## D3TEF_Intercept   0.3108153 0.3943999 -0.6686991 0.8998007
-    ## 
-    ## , , D3TEF_Intercept
-    ## 
-    ##                    Estimate Est.Error       Q2.5     Q97.5
-    ## D3TCOMP_Intercept 0.6777089 0.3731085 -0.4843934 0.9772467
-    ## D3TEM_Intercept   0.3108153 0.3943999 -0.6686991 0.8998007
-    ## D3TEF_Intercept   1.0000000 0.0000000  1.0000000 1.0000000
-
-``` r
 corr_results$M2FAMNUM$cov # covariance matrix
 ```
-
-    ## , , D3TCOMP_Intercept
-    ## 
-    ##                     Estimate  Est.Error          Q2.5      Q97.5
-    ## D3TCOMP_Intercept 0.03217011 0.02037330  0.0002976772 0.07173461
-    ## D3TEM_Intercept   0.04197124 0.02789588 -0.0019332747 0.09625821
-    ## D3TEF_Intercept   0.02511684 0.01887425 -0.0009022000 0.06200536
-    ## 
-    ## , , D3TEM_Intercept
-    ## 
-    ##                     Estimate  Est.Error         Q2.5      Q97.5
-    ## D3TCOMP_Intercept 0.04197124 0.02789588 -0.001933275 0.09625821
-    ## D3TEM_Intercept   0.12446849 0.05921995  0.015388908 0.24019557
-    ## D3TEF_Intercept   0.02150779 0.02279131 -0.015897159 0.06866607
-    ## 
-    ## , , D3TEF_Intercept
-    ## 
-    ##                     Estimate  Est.Error          Q2.5      Q97.5
-    ## D3TCOMP_Intercept 0.02511684 0.01887425 -9.022000e-04 0.06200536
-    ## D3TEM_Intercept   0.02150779 0.02279131 -1.589716e-02 0.06866607
-    ## D3TEF_Intercept   0.03022686 0.02108139  6.887546e-05 0.07326579
 
 “p-value” in multivariate models’ results? Here is some very primitive
 way of calculating the p-value.
@@ -1270,135 +1673,6 @@ sum_fit$fixed %>%
                          p_val >= 0.1 ~ "")) %>% 
   select(rowname, p_val, sig, everything())
 ```
-
-    ##                            rowname        p_val sig      estimate   est_error
-    ## 1                D3TCOMP_Intercept 2.526307e-03  ** -0.2353638089 0.077930583
-    ## 2                  D3TEM_Intercept 3.306428e-02   * -0.3322727131 0.155901294
-    ## 3                  D3TEF_Intercept 1.753800e-04 *** -0.3161855473 0.084269614
-    ## 4                D3TCOMP_ctq_total 9.339860e-02   . -0.0017713866 0.001055819
-    ## 5                D3TCOMP_B3TCOMPZ3 3.434017e-19 *** -0.7228967842 0.080736169
-    ## 6                  D3TCOMP_B3TEMZ3 8.578900e-01      0.0053744423 0.030014637
-    ## 7                  D3TCOMP_B3TEFZ3 2.054530e-03  **  0.2233442494 0.072461799
-    ## 8                D3TCOMP_B1PAGE_M2 4.636804e-19 *** -0.1343070107 0.015055791
-    ## 9                  D3TCOMP_B1PTSEI 1.826495e-01      0.0213984141 0.016057142
-    ## 10                   D3TCOMP_B1PB1 2.976242e-03  **  0.0203503200 0.006851542
-    ## 11                 D3TCOMP_B1PF7A2 9.516553e-03  ** -0.1061752512 0.040948176
-    ## 12                D3TCOMP_D1PB19M1 6.471680e-01     -0.0210676495 0.046029385
-    ## 13                 D3TCOMP_D1PB191 9.234111e-01     -0.0064158001 0.066735407
-    ## 14                D3TCOMP_B1PRSEX2 7.691643e-02   .  0.0555899602 0.031426912
-    ## 15     D3TCOMP_B1PA39former_smoker 7.906635e-01      0.0086385053 0.032542980
-    ## 16    D3TCOMP_B1PA39current_smoker 8.976589e-01     -0.0064354088 0.050034571
-    ## 17                D3TCOMP_B4HMETMW 1.281215e-01      0.0211613869 0.013907770
-    ## 18                D3TCOMP_B1SA11W1 3.237252e-02   * -0.0962954522 0.045002492
-    ## 19  D3TCOMP_B4ALCOHformer_moderate 1.479877e-01      0.0768355326 0.053111784
-    ## 20     D3TCOMP_B4ALCOHformer_heavy 7.956704e-01      0.0157701967 0.060899511
-    ## 21    D3TCOMP_B4ALCOHcurrent_light 8.256851e-01      0.0156822970 0.071205863
-    ## 22 D3TCOMP_B4ALCOHcurrent_moderate 2.868330e-02   *  0.0988799613 0.045195823
-    ## 23    D3TCOMP_B4ALCOHcurrent_heavy 8.987127e-01      0.0059569148 0.046798840
-    ## 24                 D3TEM_ctq_total 1.436979e-02   * -0.0050415081 0.002059537
-    ## 25                 D3TEM_B3TCOMPZ3 8.161332e-01      0.0385422673 0.165758045
-    ## 26                   D3TEM_B3TEMZ3 1.813174e-22 *** -0.6045891614 0.061998024
-    ## 27                   D3TEM_B3TEFZ3 4.540495e-01      0.1118093832 0.149341804
-    ## 28                 D3TEM_B1PAGE_M2 3.841528e-08 *** -0.1690583328 0.030749137
-    ## 29                   D3TEM_B1PTSEI 9.894500e-01      0.0004269643 0.032289889
-    ## 30                     D3TEM_B1PB1 2.411435e-01      0.0161712981 0.013796465
-    ## 31                   D3TEM_B1PF7A2 5.174442e-01      0.0521609191 0.080583530
-    ## 32                  D3TEM_D1PB19M1 2.825847e-01     -0.0980599675 0.091258368
-    ## 33                   D3TEM_D1PB191 9.681578e-01     -0.0054199279 0.135773678
-    ## 34                  D3TEM_B1PRSEX2 4.891982e-13 ***  0.4533777200 0.062722884
-    ## 35       D3TEM_B1PA39former_smoker 3.586126e-01      0.0601113557 0.065479921
-    ## 36      D3TEM_B1PA39current_smoker 2.677765e-01     -0.1097913592 0.099071998
-    ## 37                  D3TEM_B4HMETMW 6.635425e-02   .  0.0512022184 0.027887568
-    ## 38                  D3TEM_B1SA11W1 9.389037e-01     -0.0066825863 0.087185532
-    ## 39    D3TEM_B4ALCOHformer_moderate 3.293925e-01      0.1030966168 0.105703442
-    ## 40       D3TEM_B4ALCOHformer_heavy 8.083661e-01      0.0287069416 0.118362333
-    ## 41      D3TEM_B4ALCOHcurrent_light 2.063561e-01      0.1718411197 0.135988026
-    ## 42   D3TEM_B4ALCOHcurrent_moderate 9.341795e-02   .  0.1485228492 0.088530972
-    ## 43      D3TEM_B4ALCOHcurrent_heavy 6.960384e-01     -0.0354209853 0.090666408
-    ## 44                 D3TEF_ctq_total 6.975250e-01      0.0004486804 0.001154418
-    ## 45                 D3TEF_B3TCOMPZ3 6.882921e-01     -0.0357442275 0.089099086
-    ## 46                   D3TEF_B3TEMZ3 5.727972e-01      0.0186002851 0.032982931
-    ## 47                   D3TEF_B3TEFZ3 5.042881e-08 *** -0.4375142626 0.080280913
-    ## 48                 D3TEF_B1PAGE_M2 5.784265e-16 *** -0.1330498623 0.016438539
-    ## 49                   D3TEF_B1PTSEI 1.113335e-01      0.0279842777 0.017575547
-    ## 50                     D3TEF_B1PB1 4.396941e-02   *  0.0150001973 0.007446549
-    ## 51                   D3TEF_B1PF7A2 6.089280e-03  ** -0.1194286937 0.043540480
-    ## 52                  D3TEF_D1PB19M1 2.240996e-01      0.0604092767 0.049690986
-    ## 53                   D3TEF_D1PB191 3.967581e-01      0.0623493748 0.073575064
-    ## 54                  D3TEF_B1PRSEX2 4.402568e-02   * -0.0669332675 0.033236534
-    ## 55       D3TEF_B1PA39former_smoker 6.702227e-01     -0.0150605492 0.035366492
-    ## 56      D3TEF_B1PA39current_smoker 5.607828e-01     -0.0318791999 0.054805474
-    ## 57                  D3TEF_B4HMETMW 1.955925e-01      0.0189868425 0.014670592
-    ## 58                  D3TEF_B1SA11W1 5.947240e-02   . -0.0933633632 0.049537917
-    ## 59    D3TEF_B4ALCOHformer_moderate 2.589088e-01      0.0660697154 0.058521913
-    ## 60       D3TEF_B4ALCOHformer_heavy 6.463397e-01      0.0310802770 0.067734713
-    ## 61      D3TEF_B4ALCOHcurrent_light 4.833921e-01     -0.0542580553 0.077416700
-    ## 62   D3TEF_B4ALCOHcurrent_moderate 2.445258e-01      0.0569434624 0.048931061
-    ## 63      D3TEF_B4ALCOHcurrent_heavy 7.267603e-01      0.0178758627 0.051155987
-    ##    l_95_percent_ci u_95_percent_ci      rhat  bulk_ess  tail_ess
-    ## 1    -0.3868445085   -0.0851840410 1.0025516 1418.5187 1965.7418
-    ## 2    -0.6379399445   -0.0188528174 1.0006016 1849.6252 1854.4627
-    ## 3    -0.4788773248   -0.1505380853 1.0036426 1454.4122 2035.1499
-    ## 4    -0.0038968415    0.0002908402 1.0002029 2834.6699 2565.5354
-    ## 5    -0.8825137098   -0.5687637339 1.0010028  571.5610 1067.0410
-    ## 6    -0.0529724825    0.0631048272 1.0031760  677.8950 1331.2487
-    ## 7     0.0826995987    0.3670187391 1.0021691  612.2485 1144.3236
-    ## 8    -0.1640534721   -0.1062973717 1.0005362 1478.0814 2016.2773
-    ## 9    -0.0097373898    0.0531125087 1.0013847 1325.8060 1799.5427
-    ## 10    0.0064741791    0.0332172500 1.0022661 1700.6468 1861.8368
-    ## 11   -0.1850422233   -0.0258428042 1.0011562 1512.4140 1910.3766
-    ## 12   -0.1118187556    0.0699774932 1.0075472 1199.4117 1759.7103
-    ## 13   -0.1382187852    0.1237069144 1.0005003 1478.2985 2197.2758
-    ## 14   -0.0062148040    0.1170988007 1.0001391 1466.7474 1921.5226
-    ## 15   -0.0551935469    0.0717038725 1.0031590  875.0276 1436.2023
-    ## 16   -0.1039356412    0.0893014397 1.0013595  940.8219 1367.9182
-    ## 17   -0.0059427295    0.0483473890 1.0011538 1608.3831 1816.6643
-    ## 18   -0.1844699931   -0.0107399822 1.0006455 1746.2215 1824.7351
-    ## 19   -0.0267198539    0.1794099739 1.0028058  869.2644 1506.1998
-    ## 20   -0.1067089488    0.1323013126 1.0014684  806.1402 1621.9641
-    ## 21   -0.1274534144    0.1521711696 1.0021093 1000.4936 1582.9070
-    ## 22    0.0104049902    0.1846458244 1.0024858  628.7646 1264.1200
-    ## 23   -0.0842897349    0.0980203293 1.0028534  661.5278 1507.6225
-    ## 24   -0.0090795507   -0.0010204362 0.9993518 2865.8540 2431.8816
-    ## 25   -0.2803103920    0.3756887786 1.0023197  775.9178 1263.3638
-    ## 26   -0.7258269624   -0.4853837224 1.0017066  901.7512 1468.9630
-    ## 27   -0.1807829686    0.4061446514 1.0018206  806.2353 1177.7766
-    ## 28   -0.2303746705   -0.1097410372 1.0001325 2204.9642 2398.6267
-    ## 29   -0.0600826471    0.0639995134 0.9998737 1879.1938 2116.9354
-    ## 30   -0.0115975798    0.0432208645 1.0003125 1752.6215 1798.3503
-    ## 31   -0.1043960903    0.2074704868 1.0001394 2366.0080 2210.1158
-    ## 32   -0.2721672178    0.0800913064 1.0038268 1771.4992 2065.8019
-    ## 33   -0.2723241024    0.2548482315 1.0021144 2074.8116 2657.1259
-    ## 34    0.3294790191    0.5793314349 0.9998441 1988.1505 1922.4937
-    ## 35   -0.0623569232    0.1901909535 1.0005393 1558.9019 2121.1261
-    ## 36   -0.3040520989    0.0848546966 0.9998371 1653.3373 2042.9880
-    ## 37   -0.0044310402    0.1035686060 1.0022187 2357.8970 2344.1340
-    ## 38   -0.1756195881    0.1633648394 1.0005799 2637.8141 2467.8506
-    ## 39   -0.0957838310    0.3106821535 1.0010345 1159.2140 1865.6180
-    ## 40   -0.1964395079    0.2642173443 1.0013565 1354.6035 1900.5565
-    ## 41   -0.0942592662    0.4343869775 1.0005303 1441.8953 1699.3040
-    ## 42   -0.0299655601    0.3155221167 1.0011088 1026.2811 1710.5029
-    ## 43   -0.2169291493    0.1433313441 1.0003236 1045.7550 1795.6762
-    ## 44   -0.0017560628    0.0026625040 1.0007567 2940.9527 2570.9000
-    ## 45   -0.2116664308    0.1388277087 1.0007780  613.2384 1299.5007
-    ## 46   -0.0463148621    0.0840633590 1.0010734  727.0812 1413.9460
-    ## 47   -0.5938296147   -0.2752274161 1.0004319  648.4175 1329.6297
-    ## 48   -0.1654845639   -0.1009618833 1.0000748 1744.8205 1859.3539
-    ## 49   -0.0068565669    0.0625857662 1.0001281 1841.1399 1806.4089
-    ## 50    0.0006120923    0.0294078137 1.0012802 1850.2850 2233.3094
-    ## 51   -0.2038929667   -0.0349011580 1.0015901 1641.0224 1782.3408
-    ## 52   -0.0365779665    0.1576742255 1.0046217 1501.2728 1925.1134
-    ## 53   -0.0824747528    0.2049930385 1.0002557 1688.5758 2123.0496
-    ## 54   -0.1316807880   -0.0021820705 1.0001482 1825.0096 2309.9386
-    ## 55   -0.0847157240    0.0549548414 1.0005960 1079.8865 1589.8105
-    ## 56   -0.1404179649    0.0738313060 1.0018553 1189.7750 1763.3088
-    ## 57   -0.0094765944    0.0474161753 1.0017597 1945.8320 2310.4474
-    ## 58   -0.1896096116    0.0018836438 1.0000170 2058.2997 1984.4168
-    ## 59   -0.0510507504    0.1769101812 1.0025763  878.1562 1827.5946
-    ## 60   -0.1041327480    0.1612053505 1.0010788  863.3733 1587.1740
-    ## 61   -0.2021519890    0.0964239352 1.0010684 1092.0292 1837.6350
-    ## 62   -0.0397673901    0.1528343485 1.0022164  687.0957  961.4746
-    ## 63   -0.0814658296    0.1197456013 1.0032079  706.4619 1342.9127
 
 May try
 [MCMCglmm](http://cran.nexr.com/web/packages/MCMCglmm/vignettes/CourseNotes.pdf)

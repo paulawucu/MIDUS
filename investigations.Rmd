@@ -24,6 +24,7 @@ library(stringr)
 library(stargazer)
 library(MCMCglmm)
 library(brms)
+library(lmerTest)
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 theme_set(theme_minimal() + theme(legend.position = "bottom") + theme(plot.title = element_text(hjust = 0.5)))
 ```
@@ -37,6 +38,9 @@ m2_df =
   select(-c(37:47))
 ```
 
+```{r}
+
+```
 
 ## SES and Spouse SES Investigation
 For now, I'm thinking about impute those missing numbers with their spouse's SES, if any. First, investigate: how many people have their spouse's SES filled (out of 334)
@@ -287,6 +291,9 @@ full_df =
          B1PF7A = as.factor(B1PF7A),
          B1PA39 = as.factor(B1PA39))
 ```
+```{r}
+
+```
 
 
 # Univariate Analysis
@@ -335,6 +342,10 @@ full_df_no_invalid =  full_df_no_invalid %>%
 ```{r}
 #write.csv(full_df_no_invalid, "./data/full_df_inval.csv")
 ```
+```{r}
+table(full_df_no_invalid$D1PA6A)
+```
+
 
 
 # Modeling
@@ -367,6 +378,32 @@ lmm_base_3 = lme(D3TEF~ ctq_total + B3TEFZ3, random = ~1 | M2FAMNUM, data = full
 summary(lmm_base_3)$tTable %>% 
   knitr::kable(caption = "Base Model - Executive Function ($\\Delta$)")
 ```
+
+```{r}
+full_df_test = read_csv("./data/full_df.csv") %>% 
+  select(-1)
+# D3TCOMP
+full_df_test %>% 
+  select(D3TCOMP, B1PAGE_M2) %>% 
+  ggplot(aes(x = B1PAGE_M2, y = D3TCOMP)) + 
+  geom_point() +
+  geom_smooth(aes(color = 'red'))
+
+# D3TEF
+full_df_no_invalid %>% 
+  select(D3TEF, ctq_total) %>% 
+  ggplot(aes(x = ctq_total, y = D3TEF)) + 
+  geom_point() +
+  geom_smooth(aes(color = 'red'))
+
+# D3TEM
+full_df_no_invalid %>% 
+  select(D3TEM, ctq_total) %>% 
+  ggplot(aes(x = ctq_total, y = D3TEM)) + 
+  geom_point() +
+  geom_smooth(aes(color = 'red'))
+```
+
 
 ## Adding more covariates (LMM)
 ```{r}
@@ -709,6 +746,102 @@ lmm3_9_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7
 anova(lmm3_9_base, lmm3_9_a)
 ```
 
+## Multilevel Models
+
+This method is similar to what was implemented in the paper by Lynch & Lachman, 2020, that is, a multilevel model with level 1 slope (non time-varying) and level 2 random intercept (different for each family). The residual $\epsilon$ is also assumed to be not random (estimated based on the overall sample). Compared to the methods conceived/used earlier, I agree that this one would makes more sense conceptually, in the way that both the baseline and change in time will be taken into account.
+
+
+### random intercept model (the very basic)
+
+Change in Composite Scores
+```{r} 
+lmm_model1_cs <- lmer(D3TCOMP ~ ctq_total+(1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)  # random intercept vary across families about 0.053
+summary(lmm_model1_cs)
+```
+
+Change in Episodic Memory
+```{r}
+lmm_model1_em <- lmer(D3TEM ~ ctq_total+(1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+summary(lmm_model1_em)
+```
+
+Change in Executive Functioning
+```{r}
+lmm_model1_ef <- lmer(D3TEF ~ ctq_total+(1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+summary(lmm_model1_ef)
+```
+
+
+### Add level 1 predictors (ctq_total and the covariates)
+
+Change in Composite Scores
+```{r}
+lmm_model2_cs <- lmer(D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm_model1_cs, lmm_model2_cs)
+```
+
+Change in Episodic Memory
+```{r}
+lmm_model2_em <- lmer(D3TEM ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm_model1_em, lmm_model2_em)
+```
+
+Change in Executive Functioning
+```{r}
+lmm_model2_ef <- lmer(D3TEF ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm_model1_ef, lmm_model2_ef)
+```
+
+### Add level 2 predictors - the baseline
+
+Change in Composite Scores
+```{r}
+lmm_model3_cs <- lmer(D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM) + B3TCOMPZ3, REML = FALSE, data = full_df_no_invalid)
+anova(lmm_model2_cs, lmm_model3_cs)
+summary(lmm_model3_cs)
+```
+
+Change in Episodic Memory
+```{r}
+lmm_model3_em <- lmer(D3TEM ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM) + B3TEMZ3, REML = FALSE, data = full_df_no_invalid)
+anova(lmm_model2_cs, lmm_model3_cs)
+summary(lmm_model3_em)
+```
+
+Change in Executive Functioning
+```{r}
+lmm_model3_ef <- lmer(D3TEF ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM) + B3TEFZ3, REML = FALSE, data = full_df_no_invalid)
+anova(lmm_model2_ef, lmm_model3_ef)
+summary(lmm_model3_ef)
+```
+
+
+**Interpretation:**
+
+Take the last table for example (dependent variable: change in EF): 
+
+                         Estimate   Std. Error       df   t value Pr(>|t|)  
+                         
+B1PAGE_M2               -1.322e-01  1.637e-02  7.796e+02  -8.075  2.55e-15 ***
+B1PTSEI                  4.409e-02  1.544e-02  8.578e+02   2.855  0.00440 ** 
+
+My interpretation is: age significantly predicts the change in executive functioning, i.e. on average, 1 year increase of age will result in 0.132 more decline in Executive Functioning scores. Similarly, SES significantly predicts the change in executive functioning, i.e. on average, 1 unit increase in SES will result in 0.0441 more increase in the Executive Functioning scores. 
+
+For those insignificant results, the interpretation will thus be: the <independent variable> did not significantly predict the <dependent variable>. For example, the ctq_total did not significantly predict the change in executive functioning. 
+
+
+**For Discussion:**
+
+*1. What does the "time" variable mean in the Lynch & Lachmen's paper? Would it be useful to include?*
+
+I think it means the time between M2 and M3. Thus, can we include this to our analysis? I lean to the answer "yes" since it intuitively makes sense that people may have change in cognitive function over the period of ~10 years.
+
+*2. Would adding interaction terms to "ctq_total" make sense?*
+
+e.g. age and ctq_total. Maybe age groups, since my intuition is that cognitive functioning not necessarily decrease with increase of age: people may perform better in the tests in their 30's in M3 than 10 years ago in their 20's. These kinds of relationship may be masked in previous steps and could be observed through stratification. However, the problem is that the age group cutoff can be fairly arbitrary.
+
+*3. Modification effect, still need more research.*
+
 
 ## Multivariate Multiple/Multilevel Regression Models
 This method is also new to me, but I would like to want to explore the possibilities of combining the three independent variables (Composite scores, Episodic Memory, Executive Functioning) and see what are the outcomes. Thus, here I introduce the concept of "multivariate multilevel regression", where multiple variables can be found on the LHS of the equation (i.e. multiple independent variables). 
@@ -731,17 +864,15 @@ bform1 = bf(mvbind(D3TCOMP, D3TEM, D3TEF) ~ ctq_total + B3TCOMPZ3 + B3TEMZ3 + B3
 fit1 = brm(bform1, data = full_df_no_invalid, chains = 3, cores = 4)
 fit = add_criterion(fit1, "loo")
 ```
-```{r}
+```{r, eval=FALSE}
 #saveRDS(fit, "./results/fit.rds")
 fit = readRDS("./results/fit.rds")
 sum_fit = summary(fit)
 ```
 
-The multivariate multilevel model produced somewhat similar results to the LMM model. In terms of why we are using the 
 
 
-
-```{r}
+```{r, eval=FALSE}
 # some statistics to ponder about
 corr_results = VarCorr(fit)
 corr_results$M2FAMNUM$cor # correlation
@@ -750,7 +881,7 @@ corr_results$M2FAMNUM$cov # covariance matrix
 
 
 "p-value" in multivariate models' results? Here is some very primitive way of calculating the p-value.
-```{r}
+```{r, eval = FALSE}
 sum_fit$fixed %>% 
   rownames_to_column() %>% 
   janitor::clean_names() %>% 

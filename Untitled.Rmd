@@ -1,0 +1,72 @@
+---
+title: "Untitled"
+author: "Paula Wu"
+date: "6/28/2022"
+geometry: margin=2cm
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(patchwork)
+library(caret)
+library(GGally)
+library(nlme)
+library(lme4)
+library(gee)
+library(stringr)
+library(stargazer)
+library(stringr)
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+theme_set(theme_minimal() + theme(legend.position = "bottom") + theme(plot.title = element_text(hjust = 0.5)))
+```
+
+```{r}
+full_invalid = 
+  read_csv("./data/full_df_inval.csv") %>% 
+  select(-1)
+```
+```{r}
+tab = full_invalid %>% 
+  select(B1SA62A, B1SA62B, B1SA62C, B1SA62D, B1SA62E, B1SA62F, 
+         B1SA62G, B1SA62H, B1SA62I, B1SA62J)
+a = colSums(tab)/867 * 100
+names(a) = c("Sedative", "Tranquilizer", "Stimulant", "Painkiller", "DepressMed", "Inhalant", "Marijuana", "Cocaine", "LDS", "Heroin")
+a = data.frame(a) 
+names(a) = "Cases"
+a %>% 
+  knitr::kable(caption = "Case Occurrence (Out of 867 Subjects)")
+```
+
+```{r}
+m2_df_date = 
+  read_csv("./data/m2_df.csv") %>% 
+  select(-1) %>% 
+  filter(B3TCOMPZ3 != 8 & B3TEMZ3 != 8 & B3TEFZ3 != 8) %>% 
+  filter(B4QCT_SA != 98 & B4QCT_EN != 98 & B4QCT_MD != 8 & B4QCT_PN != 98 & B4QCT_EA != 98 & B4QCT_PA != 98) %>% 
+  select(M2ID, B3PIDATE_MO, B3PIDATE_YR)
+
+m3_df_date = 
+  read_csv("./data/m3_df.csv") %>% 
+  select(M2ID, C3IDATE_MO, C3IDATE_YR)
+
+joined_date = 
+  inner_join(m2_df_date, m3_df_date, by = "M2ID")
+monnb <- function(d){ 
+  lt <- as.POSIXlt(as.Date(d, origin="1900-01-01"))
+  lt$year*12 + lt$mon
+} 
+mondf <- function(d1, d2) { monnb(d2) - monnb(d1) }
+joined_date = 
+  joined_date %>% 
+  mutate(start_date = mdy(str_pad(paste0(B3PIDATE_MO, "01", B3PIDATE_YR), 8, pad = "0")),
+         end_date = mdy(str_pad(paste0(C3IDATE_MO, "01", C3IDATE_YR), 8, pad = "0")),
+         lapsed = mondf(start_date, end_date))
+joined_date %>% 
+  ggplot(aes(x = lapsed)) +
+  geom_bar()
+var(joined_date$lapsed)
+```
+The variance isn't small, meaning the data is dispersed. Thus, it would be a good idea to 
+
