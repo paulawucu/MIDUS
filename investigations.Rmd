@@ -300,6 +300,12 @@ full_df =
 
 ### Univariate Analysis of Cognition, CTQ total
 ```{r}
+joined_date = read_csv("./data/time_lasped.csv") %>% 
+  mutate(yr_lapsed = lapsed/12) %>% 
+  select(M2ID, yr_lapsed)  # year lapsed
+```
+
+```{r}
 full_df_no_invalid = full_df %>% 
   mutate(ctq_total = B4QCT_EA + B4QCT_EN + B4QCT_SA + B4QCT_PA + B4QCT_PN + B4QCT_MD,
          B1PRSEX = as.factor(B1PRSEX),
@@ -319,11 +325,13 @@ full_df_no_invalid = full_df %>%
          B1SA62G = ifelse(B1SA62G == 2, 0, 1),
          B1SA62H = ifelse(B1SA62H == 2, 0, 1),
          B1SA62I = ifelse(B1SA62I == 2, 0, 1),
-         B1SA62J = ifelse(B1SA62J == 2, 0, 1)
+         B1SA62J = ifelse(B1SA62J == 2, 0, 1),
+         thr_total = B4QCT_EA + B4QCT_SA + B4QCT_PA,
+         dep_total = B4QCT_EN + B4QCT_PN + B4QCT_MD,
   )
 #write.csv(full_df_no_invalid, "./data/full_df.csv")
 
-
+# scaling age, SES, modifiers (?), exercise
 full_df_no_invalid =  full_df_no_invalid %>% 
   mutate(B1SA11W = as.factor(B1SA11W),
          B1SA62A = as.factor(B1SA62A),
@@ -336,16 +344,20 @@ full_df_no_invalid =  full_df_no_invalid %>%
          B1SA62H = as.factor(B1SA62H),
          B1SA62I = as.factor(B1SA62I),
          B1SA62J = as.factor(B1SA62J)) %>% 
-   mutate_each_(funs(scale(.)), c(6,10,25:30, 37))
+   mutate_each_(funs(scale(.)), c(6,10,25:30, 37)) %>% 
+  select(-D1PA6A) 
+
+full_df_no_invalid = left_join(full_df_no_invalid, joined_date, by = "M2ID")
+# sum(is.na(joined_date$yr_lapsed)==TRUE) # no invalid
+full_df_no_invalid = full_df_no_invalid %>% 
+  mutate(D3TCOMPR = D3TCOMP/yr_lapsed,
+         D3TEMR = D3TEM/yr_lapsed,
+         D3TEFR = D3TEF/yr_lapsed)
 ```
 
 ```{r}
 #write.csv(full_df_no_invalid, "./data/full_df_inval.csv")
 ```
-```{r}
-table(full_df_no_invalid$D1PA6A)
-```
-
 
 
 # Modeling
@@ -358,11 +370,13 @@ first, fit the model with a list of covariates
 * age
 * sex
 * race
-* education 
+* education (or SES)
 * (imputed) SES
 * changes in marital status
-* changes in stroke
+* changes in stroke (deleted 9.28)
 * smoking, drug use, alcohol consumption
+* exercise and chronic sleep problem
+
 
 ## Base Model
 ```{r}
@@ -748,73 +762,74 @@ anova(lmm3_9_base, lmm3_9_a)
 
 ## Multilevel Models
 
-This method is similar to what was implemented in the paper by Lynch & Lachman, 2020, that is, a multilevel model with level 1 slope (non time-varying) and level 2 random intercept (different for each family). The residual $\epsilon$ is also assumed to be not random (estimated based on the overall sample). Compared to the methods conceived/used earlier, I agree that this one would makes more sense conceptually, in the way that both the baseline and change in time will be taken into account.
+*What is the multilevel?*
+
+First, the reason we would like to use multilevel modeling is because we have measured the same participants multiple times, and there are correlation within subjects that we cannot ignore.
+
+The **assumption** we were making when constructing the model is: participants from different families would have similar intercepts of cognitive functioning at the baseline (i.e. having different intercept). We may expect each family has some differences that affects the intercept but not the slope (all families will have the same rate of change throughout time), and that members of the same family would share the same baseline cognitive functioning. 
+
+*What would the model be like?*
+In Dr. Lachman's paper, we have seen that they used multilevel models to evaluate different predictors of both level of and change in cognitive functioning. They have defined a model with level 1 slope (non time-varying) and level 2 random intercept (different baseline for each family). However, one thing I have understood wrong is the equation: It's not necessarily true that we put two predictor on the LHS of the equation as independent variables and called it multilevel modeling. We are, indeed, predicting both level and intercept, but the model itself will yield fitted results of intercept and slope. We are still predicting one independent variable: change in composite score, episodic memory, or executive functioning. The slopes and intercepts are by-products of the modeling.
+
+
+*Thinking about the change per month/years*
+
+Last time, we've seen that there's a huge variance associated with the elapsed time between M2 and M3 for the population. Thus, maybe we would like to move from the "change in magnitude" to "rate of change per year or per month". In this case, I don't think we still need to index the baseline. Or, I could include the time between M2 and M3 as a covariate. 
 
 
 ### random intercept model (the very basic)
 
 Change in Composite Scores
 ```{r} 
-lmm_model1_cs <- lmer(D3TCOMP ~ ctq_total+(1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)  # random intercept vary across families about 0.053
+lmm_model1_cs <- lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + (1|M2FAMNUM) + yr_lapsed, REML = FALSE, data = full_df_no_invalid)  # random intercept vary across families about 0.053
 summary(lmm_model1_cs)
 ```
 
 Change in Episodic Memory
 ```{r}
-lmm_model1_em <- lmer(D3TEM ~ ctq_total+(1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm_model1_em <- lmer(D3TEM ~ B3TEMZ3 + ctq_total + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
 summary(lmm_model1_em)
 ```
 
 Change in Executive Functioning
 ```{r}
-lmm_model1_ef <- lmer(D3TEF ~ ctq_total+(1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm_model1_ef <- lmer(D3TEF ~ B3TEFZ3 + ctq_total + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
 summary(lmm_model1_ef)
 ```
 
 
-### Add level 1 predictors (ctq_total and the covariates)
+### Add covariates
 
 Change in Composite Scores
 ```{r}
-lmm_model2_cs <- lmer(D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm_model2_cs <- lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
 anova(lmm_model1_cs, lmm_model2_cs)
 ```
 
+```{r}
+summary(lmm_model2_cs)
+```
+
+
 Change in Episodic Memory
 ```{r}
-lmm_model2_em <- lmer(D3TEM ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm_model2_em <- lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
 anova(lmm_model1_em, lmm_model2_em)
 ```
 
+```{r}
+summary(lmm_model2_em)
+```
+
 Change in Executive Functioning
 ```{r}
-lmm_model2_ef <- lmer(D3TEF ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm_model2_ef <- lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
 anova(lmm_model1_ef, lmm_model2_ef)
 ```
 
-### Add level 2 predictors - the baseline
-
-Change in Composite Scores
 ```{r}
-lmm_model3_cs <- lmer(D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM) + B3TCOMPZ3, REML = FALSE, data = full_df_no_invalid)
-anova(lmm_model2_cs, lmm_model3_cs)
-summary(lmm_model3_cs)
+summary(lmm_model2_ef)
 ```
-
-Change in Episodic Memory
-```{r}
-lmm_model3_em <- lmer(D3TEM ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM) + B3TEMZ3, REML = FALSE, data = full_df_no_invalid)
-anova(lmm_model2_cs, lmm_model3_cs)
-summary(lmm_model3_em)
-```
-
-Change in Executive Functioning
-```{r}
-lmm_model3_ef <- lmer(D3TEF ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM) + B3TEFZ3, REML = FALSE, data = full_df_no_invalid)
-anova(lmm_model2_ef, lmm_model3_ef)
-summary(lmm_model3_ef)
-```
-
 
 **Interpretation:**
 
@@ -822,90 +837,71 @@ Take the last table for example (dependent variable: change in EF):
 
                          Estimate   Std. Error       df   t value Pr(>|t|)  
                          
-B1PAGE_M2               -1.322e-01  1.637e-02  7.796e+02  -8.075  2.55e-15 ***
-B1PTSEI                  4.409e-02  1.544e-02  8.578e+02   2.855  0.00440 ** 
+B1PAGE_M2               -1.365e-01  1.619e-02  7.742e+02  -8.427  < 2e-16 ***
+B1PTSEI                  4.136e-02  1.525e-02  8.568e+02   2.712  0.006821 ** 
 
-My interpretation is: age significantly predicts the change in executive functioning, i.e. on average, 1 year increase of age will result in 0.132 more decline in Executive Functioning scores. Similarly, SES significantly predicts the change in executive functioning, i.e. on average, 1 unit increase in SES will result in 0.0441 more increase in the Executive Functioning scores. 
+My interpretation is: age significantly predicts the change in executive functioning, i.e. on average, 1 year increase of age will result in 0.137 more decline in Executive Functioning scores. Similarly, SES significantly predicts the change in executive functioning, i.e. on average, 1 unit increase in SES will result in 0.0414 more increase in the Executive Functioning scores. 
 
-For those insignificant results, the interpretation will thus be: the <independent variable> did not significantly predict the <dependent variable>. For example, the ctq_total did not significantly predict the change in executive functioning. 
+For those insignificant results, the interpretation will thus be: the <independent variable> did not significantly predict the <dependent variable>. For example, the ctq_total did not significantly predict the change in executive functioning.
 
+*Since we are also concerning the threat and deprivation*
 
-**For Discussion:**
+**threat**
 
-*1. What does the "time" variable mean in the Lynch & Lachmen's paper? Would it be useful to include?*
-
-I think it means the time between M2 and M3. Thus, can we include this to our analysis? I lean to the answer "yes" since it intuitively makes sense that people may have change in cognitive function over the period of ~10 years.
-
-*2. Would adding interaction terms to "ctq_total" make sense?*
-
-e.g. age and ctq_total. Maybe age groups, since my intuition is that cognitive functioning not necessarily decrease with increase of age: people may perform better in the tests in their 30's in M3 than 10 years ago in their 20's. These kinds of relationship may be masked in previous steps and could be observed through stratification. However, the problem is that the age group cutoff can be fairly arbitrary.
-
-*3. Modification effect, still need more research.*
-
-
-## Multivariate Multiple/Multilevel Regression Models
-This method is also new to me, but I would like to want to explore the possibilities of combining the three independent variables (Composite scores, Episodic Memory, Executive Functioning) and see what are the outcomes. Thus, here I introduce the concept of "multivariate multilevel regression", where multiple variables can be found on the LHS of the equation (i.e. multiple independent variables). 
-
-* When do we use multivariate regression model [(ref)](https://www.analyticsvidhya.com/blog/2022/01/a-brief-introduction-to-multilevel-modelling/#:~:text=Advantages%20of%20Multilevel%20Modelling&text=Better%20inferences%3A%20A%20multilevel%20regression,and%20overstatement%20of%20coefficient%20significance.): When individual data is collected from a random sample of clusters (schools, areas, hospitals) at one point in time then observations within these clusters are more likely to be similar. Here, participants from different families might perform differently in tests, thus having different scores. 
-
-**What's the difference: **
-
-* Multiple regression model: we have only *one* dependent variable $Y$ and multiple independent variables $X's$. We are modeling the linear relationship between the outcome and the predictor, while adjusting for other covariates. 
-
-* Multivariate regression model: we have *multiple* dependent variables $Y's$ and multiple $X's$. The joint mean of the multiple dependent variables is being predicted by the independent variables. We are modeling the *variance-covariance matrix* in the set of $Y's$, that is, we are able to know the covariance between our three dependent variables ($\Delta$Composite Score, $\Delta$Episodic Memory, $\Delta$Executive Function). But, does that improve the results or does that help us with the modeling? By now I only found the ability to model a joint distribution may be the biggest advantage of using this method.
-
-
-For implementation, I used the library `brms`. Here is my [reference](https://cran.r-project.org/web/packages/brms/vignettes/brms_multivariate.html)
-```{r, eval = FALSE}
-# multivariate normal model
-bform1 = bf(mvbind(D3TCOMP, D3TEM, D3TEF) ~ ctq_total + B3TCOMPZ3 + B3TEMZ3 + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + (1|p|M2FAMNUM)) + 
-  set_rescor(TRUE) # we don't have missing values in predictors
-
-fit1 = brm(bform1, data = full_df_no_invalid, chains = 3, cores = 4)
-fit = add_criterion(fit1, "loo")
+Change in Composite Scores & threat
+```{r}
+lmm_model2_cs_thr <- lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
 ```
-```{r, eval=FALSE}
-#saveRDS(fit, "./results/fit.rds")
-fit = readRDS("./results/fit.rds")
-sum_fit = summary(fit)
+
+```{r}
+summary(lmm_model2_cs_thr)
 ```
 
 
+Change in Episodic Memory
+```{r}
+lmm_model2_em_thr <- lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+```
 
-```{r, eval=FALSE}
-# some statistics to ponder about
-corr_results = VarCorr(fit)
-corr_results$M2FAMNUM$cor # correlation
-corr_results$M2FAMNUM$cov # covariance matrix
+```{r}
+summary(lmm_model2_em_thr)
+```
+
+Change in Executive Functioning
+```{r}
+lmm_model2_ef_thr <- lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+```
+
+```{r}
+summary(lmm_model2_ef_thr)
+```
+
+**deprivation**
+Change in Composite Scores
+```{r}
+lmm_model2_cs_dep <- lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+```
+
+```{r}
+summary(lmm_model2_cs_dep)
 ```
 
 
-"p-value" in multivariate models' results? Here is some very primitive way of calculating the p-value.
-```{r, eval = FALSE}
-sum_fit$fixed %>% 
-  rownames_to_column() %>% 
-  janitor::clean_names() %>% 
-  mutate(p_val = 2*pnorm(-abs(estimate/est_error), mean = 0, sd = 1)) %>%
-  mutate(sig = case_when(p_val < 0.001 ~ "***",
-                         p_val < 0.01 ~ "**",
-                         p_val < 0.05 ~ "*",
-                         p_val < 0.1 ~ ".",
-                         p_val >= 0.1 ~ "")) %>% 
-  select(rowname, p_val, sig, everything())
+Change in Episodic Memory
+```{r}
+lmm_model2_em_dep <- lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
 ```
 
-
-May try [MCMCglmm](http://cran.nexr.com/web/packages/MCMCglmm/vignettes/CourseNotes.pdf) packages since `brms` takes a long time. Need to tune the prior distribution for the function to work properly. 
-```{r, eval = FALSE}
-# settings
-full_df_no_invalid_mcmc = as.data.frame(full_df_no_invalid) # need dataframe instead of tibble
-family_set = c("gaussian", "gaussian", "gaussian")  # response variable categories
-
-# fitting the model
-fit_mcmc = MCMCglmm(cbind(D3TCOMP, D3TEM, D3TEF) ~ ctq_total + B3TCOMPZ3 + B3TEMZ3 + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH, random = ~us(trait):M2FAMNUM, rcov = ~us(trait):units, data = full_df_no_invalid_mcmc, family = family_set, verbose = FALSE)
+```{r}
+summary(lmm_model2_em_dep)
 ```
 
+Change in Executive Functioning
+```{r}
+lmm_model2_ef_dep <- lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+```
 
-
-
+```{r}
+summary(lmm_model2_ef_dep)
+```
 

@@ -316,6 +316,12 @@ full_df =
 ### Univariate Analysis of Cognition, CTQ total
 
 ``` r
+joined_date = read_csv("./data/time_lasped.csv") %>% 
+  mutate(yr_lapsed = lapsed/12) %>% 
+  select(M2ID, yr_lapsed)  # year lapsed
+```
+
+``` r
 full_df_no_invalid = full_df %>% 
   mutate(ctq_total = B4QCT_EA + B4QCT_EN + B4QCT_SA + B4QCT_PA + B4QCT_PN + B4QCT_MD,
          B1PRSEX = as.factor(B1PRSEX),
@@ -335,11 +341,13 @@ full_df_no_invalid = full_df %>%
          B1SA62G = ifelse(B1SA62G == 2, 0, 1),
          B1SA62H = ifelse(B1SA62H == 2, 0, 1),
          B1SA62I = ifelse(B1SA62I == 2, 0, 1),
-         B1SA62J = ifelse(B1SA62J == 2, 0, 1)
+         B1SA62J = ifelse(B1SA62J == 2, 0, 1),
+         thr_total = B4QCT_EA + B4QCT_SA + B4QCT_PA,
+         dep_total = B4QCT_EN + B4QCT_PN + B4QCT_MD,
   )
 #write.csv(full_df_no_invalid, "./data/full_df.csv")
 
-
+# scaling age, SES, modifiers (?), exercise
 full_df_no_invalid =  full_df_no_invalid %>% 
   mutate(B1SA11W = as.factor(B1SA11W),
          B1SA62A = as.factor(B1SA62A),
@@ -352,20 +360,20 @@ full_df_no_invalid =  full_df_no_invalid %>%
          B1SA62H = as.factor(B1SA62H),
          B1SA62I = as.factor(B1SA62I),
          B1SA62J = as.factor(B1SA62J)) %>% 
-   mutate_each_(funs(scale(.)), c(6,10,25:30, 37))
+   mutate_each_(funs(scale(.)), c(6,10,25:30, 37)) %>% 
+  select(-D1PA6A) 
+
+full_df_no_invalid = left_join(full_df_no_invalid, joined_date, by = "M2ID")
+# sum(is.na(joined_date$yr_lapsed)==TRUE) # no invalid
+full_df_no_invalid = full_df_no_invalid %>% 
+  mutate(D3TCOMPR = D3TCOMP/yr_lapsed,
+         D3TEMR = D3TEM/yr_lapsed,
+         D3TEFR = D3TEF/yr_lapsed)
 ```
 
 ``` r
 #write.csv(full_df_no_invalid, "./data/full_df_inval.csv")
 ```
-
-``` r
-table(full_df_no_invalid$D1PA6A)
-```
-
-    ## 
-    ##   0   1 
-    ## 845  22
 
 # Modeling
 
@@ -379,11 +387,12 @@ first, fit the model with a list of covariates
 -   age
 -   sex
 -   race
--   education
+-   education (or SES)
 -   (imputed) SES
 -   changes in marital status
--   changes in stroke
+-   changes in stroke (deleted 9.28)
 -   smoking, drug use, alcohol consumption
+-   exercise and chronic sleep problem
 
 ## Base Model
 
@@ -1192,366 +1201,357 @@ anova(lmm3_9_base, lmm3_9_a)
 
 ## Multilevel Models
 
-This method is similar to what was implemented in the paper by Lynch &
-Lachman, 2020, that is, a multilevel model with level 1 slope (non
-time-varying) and level 2 random intercept (different for each family).
-The residual *ϵ* is also assumed to be not random (estimated based on
-the overall sample). Compared to the methods conceived/used earlier, I
-agree that this one would makes more sense conceptually, in the way that
-both the baseline and change in time will be taken into account.
+*What is the multilevel?*
+
+First, the reason we would like to use multilevel modeling is because we
+have measured the same participants multiple times, and there are
+correlation within subjects that we cannot ignore.
+
+The **assumption** we were making when constructing the model is:
+participants from different families would have similar intercepts of
+cognitive functioning at the baseline (i.e. having different intercept).
+We may expect each family has some differences that affects the
+intercept but not the slope (all families will have the same rate of
+change throughout time), and that members of the same family would share
+the same baseline cognitive functioning.
+
+*What would the model be like?* In Dr. Lachman’s paper, we have seen
+that they used multilevel models to evaluate different predictors of
+both level of and change in cognitive functioning. They have defined a
+model with level 1 slope (non time-varying) and level 2 random intercept
+(different baseline for each family). However, one thing I have
+understood wrong is the equation: It’s not necessarily true that we put
+two predictor on the LHS of the equation as independent variables and
+called it multilevel modeling. We are, indeed, predicting both level and
+intercept, but the model itself will yield fitted results of intercept
+and slope. We are still predicting one independent variable: change in
+composite score, episodic memory, or executive functioning. The slopes
+and intercepts are by-products of the modeling.
+
+*Thinking about the change per month/years*
+
+Last time, we’ve seen that there’s a huge variance associated with the
+elapsed time between M2 and M3 for the population. Thus, maybe we would
+like to move from the “change in magnitude” to “rate of change per year
+or per month”. In this case, I don’t think we still need to index the
+baseline. Or, I could include the time between M2 and M3 as a covariate.
 
 ### random intercept model (the very basic)
 
 Change in Composite Scores
 
 ``` r
-lmm_model1_cs <- lmer(D3TCOMP ~ ctq_total+(1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)  # random intercept vary across families about 0.053
+lmm_model1_cs <- lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + (1|M2FAMNUM) + yr_lapsed, REML = FALSE, data = full_df_no_invalid)  # random intercept vary across families about 0.053
 summary(lmm_model1_cs)
 ```
 
     ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
     ##   method [lmerModLmerTest]
-    ## Formula: D3TCOMP ~ ctq_total + (1 | M2FAMNUM)
+    ## Formula: D3TCOMP ~ B3TCOMPZ3 + ctq_total + (1 | M2FAMNUM) + yr_lapsed
     ##    Data: full_df_no_invalid
     ## 
     ##      AIC      BIC   logLik deviance df.resid 
-    ##   1488.5   1507.6   -740.3   1480.5      863 
+    ##    950.9    979.5   -469.5    938.9      861 
     ## 
     ## Scaled residuals: 
     ##     Min      1Q  Median      3Q     Max 
-    ## -2.8787 -0.6256  0.0343  0.5901  3.6018 
+    ## -2.4589 -0.5491 -0.0154  0.5117  3.5406 
     ## 
     ## Random effects:
     ##  Groups   Name        Variance Std.Dev.
-    ##  M2FAMNUM (Intercept) 0.0533   0.2309  
-    ##  Residual             0.2707   0.5203  
+    ##  M2FAMNUM (Intercept) 0.05342  0.2311  
+    ##  Residual             0.12154  0.3486  
     ## Number of obs: 867, groups:  M2FAMNUM, 766
     ## 
     ## Fixed effects:
     ##               Estimate Std. Error         df t value Pr(>|t|)    
-    ## (Intercept)  -0.217921   0.057566 797.283589  -3.786 0.000165 ***
-    ## ctq_total     0.000527   0.001411 813.817554   0.373 0.708961    
+    ## (Intercept)   0.406129   0.160510 865.709382   2.530  0.01157 *  
+    ## B3TCOMPZ3    -0.437992   0.015923 853.527788 -27.507  < 2e-16 ***
+    ## ctq_total    -0.001217   0.001048 833.763861  -1.162  0.24568    
+    ## yr_lapsed    -0.048800   0.016597 866.904260  -2.940  0.00337 ** 
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## Correlation of Fixed Effects:
-    ##           (Intr)
-    ## ctq_total -0.940
+    ##           (Intr) B3TCOM ctq_tt
+    ## B3TCOMPZ3 -0.157              
+    ## ctq_total -0.172  0.062       
+    ## yr_lapsed -0.963  0.122 -0.081
 
 Change in Episodic Memory
 
 ``` r
-lmm_model1_em <- lmer(D3TEM ~ ctq_total+(1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm_model1_em <- lmer(D3TEM ~ B3TEMZ3 + ctq_total + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
 summary(lmm_model1_em)
 ```
 
     ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
     ##   method [lmerModLmerTest]
-    ## Formula: D3TEM ~ ctq_total + (1 | M2FAMNUM)
+    ## Formula: D3TEM ~ B3TEMZ3 + ctq_total + yr_lapsed + (1 | M2FAMNUM)
     ##    Data: full_df_no_invalid
     ## 
     ##      AIC      BIC   logLik deviance df.resid 
-    ##   2309.6   2328.7  -1150.8   2301.6      863 
+    ##   2146.2   2174.8  -1067.1   2134.2      861 
     ## 
     ## Scaled residuals: 
-    ##     Min      1Q  Median      3Q     Max 
-    ## -3.3256 -0.5824 -0.0084  0.5443  3.5253 
+    ##      Min       1Q   Median       3Q      Max 
+    ## -2.24336 -0.59205 -0.07577  0.50272  2.94263 
     ## 
     ## Random effects:
     ##  Groups   Name        Variance Std.Dev.
-    ##  M2FAMNUM (Intercept) 0.04785  0.2187  
-    ##  Residual             0.78511  0.8861  
+    ##  M2FAMNUM (Intercept) 0.1968   0.4436  
+    ##  Residual             0.4965   0.7047  
     ## Number of obs: 867, groups:  M2FAMNUM, 766
     ## 
     ## Fixed effects:
-    ##               Estimate Std. Error         df t value Pr(>|t|)
-    ## (Intercept)  -0.004887   0.091655 773.560037  -0.053    0.957
-    ## ctq_total    -0.002830   0.002250 791.962700  -1.258    0.209
+    ##               Estimate Std. Error         df t value Pr(>|t|)    
+    ## (Intercept)   0.225691   0.316465 864.584477   0.713    0.476    
+    ## B3TEMZ3      -0.439296   0.031742 863.604734 -13.840   <2e-16 ***
+    ## ctq_total    -0.002712   0.002081 830.521259  -1.303    0.193    
+    ## yr_lapsed    -0.018384   0.032862 866.667286  -0.559    0.576    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## Correlation of Fixed Effects:
-    ##           (Intr)
-    ## ctq_total -0.940
+    ##           (Intr) B3TEMZ ctq_tt
+    ## B3TEMZ3   -0.067              
+    ## ctq_total -0.164  0.001       
+    ## yr_lapsed -0.963  0.053 -0.089
 
 Change in Executive Functioning
 
 ``` r
-lmm_model1_ef <- lmer(D3TEF ~ ctq_total+(1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm_model1_ef <- lmer(D3TEF ~ B3TEFZ3 + ctq_total + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
 summary(lmm_model1_ef)
 ```
 
     ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
     ##   method [lmerModLmerTest]
-    ## Formula: D3TEF ~ ctq_total + (1 | M2FAMNUM)
+    ## Formula: D3TEF ~ B3TEFZ3 + ctq_total + yr_lapsed + (1 | M2FAMNUM)
     ##    Data: full_df_no_invalid
     ## 
     ##      AIC      BIC   logLik deviance df.resid 
-    ##   1425.8   1444.9   -708.9   1417.8      863 
+    ##   1045.0   1073.6   -516.5   1033.0      861 
     ## 
     ## Scaled residuals: 
     ##     Min      1Q  Median      3Q     Max 
-    ## -3.6579 -0.5578 -0.0172  0.5470  2.9257 
+    ## -4.3619 -0.5033  0.0451  0.5164  2.9217 
     ## 
     ## Random effects:
     ##  Groups   Name        Variance Std.Dev.
-    ##  M2FAMNUM (Intercept) 0.08135  0.2852  
-    ##  Residual             0.22176  0.4709  
+    ##  M2FAMNUM (Intercept) 0.0629   0.2508  
+    ##  Residual             0.1324   0.3638  
     ## Number of obs: 867, groups:  M2FAMNUM, 766
     ## 
     ## Fixed effects:
     ##               Estimate Std. Error         df t value Pr(>|t|)    
-    ## (Intercept)  -0.439540   0.055936 815.718068  -7.858 1.23e-14 ***
-    ## ctq_total     0.002512   0.001370 829.690421   1.834   0.0671 .  
+    ## (Intercept)  4.823e-01  1.693e-01  8.660e+02   2.848   0.0045 ** 
+    ## B3TEFZ3     -3.846e-01  1.756e-02  8.475e+02 -21.906  < 2e-16 ***
+    ## ctq_total    9.527e-04  1.108e-03  8.360e+02   0.860   0.3901    
+    ## yr_lapsed   -8.065e-02  1.749e-02  8.669e+02  -4.610 4.62e-06 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
     ## Correlation of Fixed Effects:
-    ##           (Intr)
-    ## ctq_total -0.939
+    ##           (Intr) B3TEFZ ctq_tt
+    ## B3TEFZ3   -0.150              
+    ## ctq_total -0.174  0.073       
+    ## yr_lapsed -0.963  0.108 -0.081
 
-### Add level 1 predictors (ctq_total and the covariates)
+### Add covariates
 
 Change in Composite Scores
 
 ``` r
-lmm_model2_cs <- lmer(D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm_model2_cs <- lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
 anova(lmm_model1_cs, lmm_model2_cs)
 ```
 
     ## Data: full_df_no_invalid
     ## Models:
-    ## lmm_model1_cs: D3TCOMP ~ ctq_total + (1 | M2FAMNUM)
-    ## lmm_model2_cs: D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM)
+    ## lmm_model1_cs: D3TCOMP ~ B3TCOMPZ3 + ctq_total + (1 | M2FAMNUM) + yr_lapsed
+    ## lmm_model2_cs: D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1 | M2FAMNUM)
     ##               npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)    
-    ## lmm_model1_cs    4 1488.5 1507.6 -740.27   1480.5                         
-    ## lmm_model2_cs   19 1475.3 1565.9 -718.67   1437.3 43.197 15  0.0001467 ***
+    ## lmm_model1_cs    6 950.93 979.52 -469.47   938.93                         
+    ## lmm_model2_cs   21 871.59 971.66 -414.80   829.59 109.34 15  < 2.2e-16 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+``` r
+summary(lmm_model2_cs)
+```
+
+    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
+    ##   method [lmerModLmerTest]
+    ## Formula: D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A +  
+    ##     B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W +  
+    ##     yr_lapsed + (1 | M2FAMNUM)
+    ##    Data: full_df_no_invalid
+    ## 
+    ##      AIC      BIC   logLik deviance df.resid 
+    ##    871.6    971.7   -414.8    829.6      846 
+    ## 
+    ## Scaled residuals: 
+    ##     Min      1Q  Median      3Q     Max 
+    ## -2.6218 -0.5719  0.0007  0.5528  3.7287 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  M2FAMNUM (Intercept) 0.04669  0.2161  
+    ##  Residual             0.10751  0.3279  
+    ## Number of obs: 867, groups:  M2FAMNUM, 766
+    ## 
+    ## Fixed effects:
+    ##                           Estimate Std. Error         df t value Pr(>|t|)    
+    ## (Intercept)               0.421411   0.167707 866.950341   2.513  0.01216 *  
+    ## B3TCOMPZ3                -0.510887   0.017210 862.844380 -29.686  < 2e-16 ***
+    ## ctq_total                -0.001959   0.001040 835.946963  -1.884  0.05990 .  
+    ## B1PRSEX2                  0.018925   0.028824 841.337669   0.657  0.51164    
+    ## B1PAGE_M2                -0.141431   0.015232 771.836500  -9.285  < 2e-16 ***
+    ## B1PF7A2                  -0.070094   0.043488 853.407666  -1.612  0.10738    
+    ## B1PTSEI                   0.043687   0.014335 850.764323   3.048  0.00238 ** 
+    ## B1PA39former_smoker       0.008674   0.032771 854.839237   0.265  0.79132    
+    ## B1PA39current_smoker     -0.020742   0.049276 865.822332  -0.421  0.67390    
+    ## B4ALCOHformer_moderate    0.095599   0.053495 866.933676   1.787  0.07428 .  
+    ## B4ALCOHformer_heavy       0.035668   0.059683 866.759075   0.598  0.55024    
+    ## B4ALCOHcurrent_light      0.046059   0.068942 860.610110   0.668  0.50426    
+    ## B4ALCOHcurrent_moderate   0.114338   0.044677 866.993040   2.559  0.01066 *  
+    ## B4ALCOHcurrent_heavy      0.020767   0.046444 864.646779   0.447  0.65489    
+    ## D1PB19-1                 -0.017130   0.045149 861.627771  -0.379  0.70447    
+    ## D1PB191                   0.007266   0.066674 796.659339   0.109  0.91325    
+    ## B4HMETMW                  0.020950   0.013503 836.995117   1.552  0.12115    
+    ## B1SA11W1                 -0.094809   0.044357 866.705100  -2.137  0.03284 *  
+    ## yr_lapsed                -0.050605   0.017256 866.297173  -2.933  0.00345 ** 
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 Change in Episodic Memory
 
 ``` r
-lmm_model2_em <- lmer(D3TEM ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm_model2_em <- lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
 anova(lmm_model1_em, lmm_model2_em)
 ```
 
     ## Data: full_df_no_invalid
     ## Models:
-    ## lmm_model1_em: D3TEM ~ ctq_total + (1 | M2FAMNUM)
-    ## lmm_model2_em: D3TEM ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM)
-    ##               npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)   
-    ## lmm_model1_em    4 2309.6 2328.7 -1150.8   2301.6                        
-    ## lmm_model2_em   19 2302.2 2392.7 -1132.1   2264.2 37.433 15   0.001094 **
+    ## lmm_model1_em: D3TEM ~ B3TEMZ3 + ctq_total + yr_lapsed + (1 | M2FAMNUM)
+    ## lmm_model2_em: D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1 | M2FAMNUM)
+    ##               npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)    
+    ## lmm_model1_em    6 2146.2 2174.8 -1067.1   2134.2                         
+    ## lmm_model2_em   21 2064.5 2164.5 -1011.2   2022.5 111.73 15  < 2.2e-16 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+``` r
+summary(lmm_model2_em)
+```
+
+    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
+    ##   method [lmerModLmerTest]
+    ## Formula: D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A +  
+    ##     B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W +  
+    ##     yr_lapsed + (1 | M2FAMNUM)
+    ##    Data: full_df_no_invalid
+    ## 
+    ##      AIC      BIC   logLik deviance df.resid 
+    ##   2064.5   2164.5  -1011.2   2022.5      846 
+    ## 
+    ## Scaled residuals: 
+    ##      Min       1Q   Median       3Q      Max 
+    ## -2.59358 -0.58463 -0.06758  0.49442  2.73694 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  M2FAMNUM (Intercept) 0.1773   0.4211  
+    ##  Residual             0.4325   0.6576  
+    ## Number of obs: 867, groups:  M2FAMNUM, 766
+    ## 
+    ## Fixed effects:
+    ##                           Estimate Std. Error         df t value Pr(>|t|)    
+    ## (Intercept)               0.304434   0.333249 866.912773   0.914  0.36122    
+    ## B3TEMZ3                  -0.551837   0.032636 849.992882 -16.909  < 2e-16 ***
+    ## ctq_total                -0.005618   0.002064 838.954544  -2.722  0.00663 ** 
+    ## B1PRSEX2                  0.419433   0.060012 850.491432   6.989 5.59e-12 ***
+    ## B1PAGE_M2                -0.208977   0.029007 771.104095  -7.204 1.39e-12 ***
+    ## B1PF7A2                   0.005453   0.083792 855.710924   0.065  0.94812    
+    ## B1PTSEI                   0.042185   0.027949 852.370428   1.509  0.13158    
+    ## B1PA39former_smoker       0.056577   0.065274 856.849506   0.867  0.38632    
+    ## B1PA39current_smoker     -0.131542   0.098024 866.368926  -1.342  0.17997    
+    ## B4ALCOHformer_moderate    0.124529   0.106438 866.771236   1.170  0.24234    
+    ## B4ALCOHformer_heavy       0.057098   0.118721 866.996112   0.481  0.63068    
+    ## B4ALCOHcurrent_light      0.199109   0.137254 862.902079   1.451  0.14724    
+    ## B4ALCOHcurrent_moderate   0.182314   0.088863 866.728064   2.052  0.04051 *  
+    ## B4ALCOHcurrent_heavy     -0.015430   0.092378 864.002604  -0.167  0.86738    
+    ## D1PB19-1                 -0.106769   0.089790 862.710701  -1.189  0.23473    
+    ## D1PB191                  -0.001815   0.132757 808.835156  -0.014  0.98910    
+    ## B4HMETMW                  0.053923   0.026875 842.614559   2.006  0.04513 *  
+    ## B1SA11W1                 -0.005398   0.088242 866.896896  -0.061  0.95123    
+    ## yr_lapsed                -0.047508   0.034338 866.548093  -1.384  0.16685    
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 Change in Executive Functioning
 
 ``` r
-lmm_model2_ef <- lmer(D3TEF ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm_model2_ef <- lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
 anova(lmm_model1_ef, lmm_model2_ef)
 ```
 
     ## Data: full_df_no_invalid
     ## Models:
-    ## lmm_model1_ef: D3TEF ~ ctq_total + (1 | M2FAMNUM)
-    ## lmm_model2_ef: D3TEF ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM)
-    ##               npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)  
-    ## lmm_model1_ef    4 1425.8 1444.8 -708.90   1417.8                       
-    ## lmm_model2_ef   19 1427.7 1518.2 -694.84   1389.7 28.108 15    0.02091 *
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-### Add level 2 predictors - the baseline
-
-Change in Composite Scores
-
-``` r
-lmm_model3_cs <- lmer(D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM) + B3TCOMPZ3, REML = FALSE, data = full_df_no_invalid)
-anova(lmm_model2_cs, lmm_model3_cs)
-```
-
-    ## Data: full_df_no_invalid
-    ## Models:
-    ## lmm_model2_cs: D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM)
-    ## lmm_model3_cs: D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM) + B3TCOMPZ3
-    ##               npar     AIC     BIC  logLik deviance  Chisq Df Pr(>Chisq)    
-    ## lmm_model2_cs   19 1475.35 1565.88 -718.67  1437.35                         
-    ## lmm_model3_cs   20  878.13  973.43 -419.07   838.13 599.22  1  < 2.2e-16 ***
+    ## lmm_model1_ef: D3TEF ~ B3TEFZ3 + ctq_total + yr_lapsed + (1 | M2FAMNUM)
+    ## lmm_model2_ef: D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1 | M2FAMNUM)
+    ##               npar     AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)    
+    ## lmm_model1_ef    6 1044.98 1073.6 -516.49  1032.98                         
+    ## lmm_model2_ef   21  980.72 1080.8 -469.36   938.72 94.256 15  1.584e-13 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 ``` r
-summary(lmm_model3_cs)
+summary(lmm_model2_ef)
 ```
 
     ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
     ##   method [lmerModLmerTest]
-    ## Formula: D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI +  
-    ##     B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM) +  
-    ##     B3TCOMPZ3
+    ## Formula: D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A +  
+    ##     B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W +  
+    ##     yr_lapsed + (1 | M2FAMNUM)
     ##    Data: full_df_no_invalid
     ## 
     ##      AIC      BIC   logLik deviance df.resid 
-    ##    878.1    973.4   -419.1    838.1      847 
+    ##    980.7   1080.8   -469.4    938.7      846 
     ## 
     ## Scaled residuals: 
     ##     Min      1Q  Median      3Q     Max 
-    ## -2.9562 -0.5595  0.0018  0.5388  3.6881 
+    ## -4.6674 -0.5141  0.0333  0.5596  3.1926 
     ## 
     ## Random effects:
     ##  Groups   Name        Variance Std.Dev.
-    ##  M2FAMNUM (Intercept) 0.04898  0.2213  
-    ##  Residual             0.10689  0.3269  
+    ##  M2FAMNUM (Intercept) 0.04621  0.215   
+    ##  Residual             0.12819  0.358   
     ## Number of obs: 867, groups:  M2FAMNUM, 766
     ## 
     ## Fixed effects:
     ##                           Estimate Std. Error         df t value Pr(>|t|)    
-    ## (Intercept)              -0.043399   0.055511 817.729430  -0.782  0.43455    
-    ## ctq_total                -0.001980   0.001045 838.127269  -1.894  0.05853 .  
-    ## B1PRSEX2                  0.014670   0.028941 843.082827   0.507  0.61236    
-    ## B1PAGE_M2                -0.138540   0.015291 776.047203  -9.060  < 2e-16 ***
-    ## B1PF7A2                  -0.118582   0.040490 840.862430  -2.929  0.00350 ** 
-    ## B1PTSEI                   0.045196   0.014392 849.183342   3.140  0.00175 ** 
-    ## B1PA39former_smoker       0.005931   0.032907 853.508701   0.180  0.85701    
-    ## B1PA39current_smoker     -0.023790   0.049500 865.337597  -0.481  0.63092    
-    ## B4ALCOHformer_moderate    0.095485   0.053760 866.995656   1.776  0.07606 .  
-    ## B4ALCOHformer_heavy       0.027585   0.059898 866.473179   0.461  0.64525    
-    ## B4ALCOHcurrent_light      0.045482   0.069263 859.060369   0.657  0.51158    
-    ## B4ALCOHcurrent_moderate   0.115846   0.044896 866.975956   2.580  0.01003 *  
-    ## B4ALCOHcurrent_heavy      0.016377   0.046654 865.452917   0.351  0.72565    
-    ## D1PB19-1                 -0.021932   0.045338 861.218366  -0.484  0.62869    
-    ## D1PB191                   0.015749   0.066899 795.968507   0.235  0.81394    
-    ## B4HMETMW                  0.020858   0.013562 835.558578   1.538  0.12442    
-    ## B1SA11W1                 -0.099586   0.044547 866.574916  -2.236  0.02564 *  
-    ## B3TCOMPZ3                -0.510601   0.017296 863.675532 -29.520  < 2e-16 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-Change in Episodic Memory
-
-``` r
-lmm_model3_em <- lmer(D3TEM ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM) + B3TEMZ3, REML = FALSE, data = full_df_no_invalid)
-anova(lmm_model2_cs, lmm_model3_cs)
-```
-
-    ## Data: full_df_no_invalid
-    ## Models:
-    ## lmm_model2_cs: D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM)
-    ## lmm_model3_cs: D3TCOMP ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM) + B3TCOMPZ3
-    ##               npar     AIC     BIC  logLik deviance  Chisq Df Pr(>Chisq)    
-    ## lmm_model2_cs   19 1475.35 1565.88 -718.67  1437.35                         
-    ## lmm_model3_cs   20  878.13  973.43 -419.07   838.13 599.22  1  < 2.2e-16 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-``` r
-summary(lmm_model3_em)
-```
-
-    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
-    ##   method [lmerModLmerTest]
-    ## Formula: D3TEM ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI +  
-    ##     B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM) +  
-    ##     B3TEMZ3
-    ##    Data: full_df_no_invalid
-    ## 
-    ##      AIC      BIC   logLik deviance df.resid 
-    ##   2064.4   2159.7  -1012.2   2024.4      847 
-    ## 
-    ## Scaled residuals: 
-    ##      Min       1Q   Median       3Q      Max 
-    ## -2.56500 -0.58283 -0.07122  0.48971  2.70526 
-    ## 
-    ## Random effects:
-    ##  Groups   Name        Variance Std.Dev.
-    ##  M2FAMNUM (Intercept) 0.1829   0.4277  
-    ##  Residual             0.4287   0.6547  
-    ## Number of obs: 867, groups:  M2FAMNUM, 766
-    ## 
-    ## Fixed effects:
-    ##                           Estimate Std. Error         df t value Pr(>|t|)    
-    ## (Intercept)              -0.131918   0.109007 821.305686  -1.210  0.22656    
-    ## ctq_total                -0.005638   0.002067 840.291781  -2.727  0.00652 ** 
-    ## B1PRSEX2                  0.415017   0.060005 851.651561   6.916 9.10e-12 ***
-    ## B1PAGE_M2                -0.206307   0.028999 774.266827  -7.114 2.56e-12 ***
-    ## B1PF7A2                  -0.040104   0.077214 843.419426  -0.519  0.60362    
-    ## B1PTSEI                   0.043627   0.027956 851.227548   1.561  0.11900    
-    ## B1PA39former_smoker       0.053746   0.065302 856.057552   0.823  0.41072    
-    ## B1PA39current_smoker     -0.134904   0.098099 866.136979  -1.375  0.16943    
-    ## B4ALCOHformer_moderate    0.125141   0.106559 866.876423   1.174  0.24056    
-    ## B4ALCOHformer_heavy       0.049753   0.118704 866.948709   0.419  0.67522    
-    ## B4ALCOHcurrent_light      0.198692   0.137382 862.033972   1.446  0.14846    
-    ## B4ALCOHcurrent_moderate   0.184360   0.088960 866.873968   2.072  0.03852 *  
-    ## B4ALCOHcurrent_heavy     -0.019190   0.092443 864.674947  -0.208  0.83560    
-    ## D1PB19-1                 -0.111165   0.089828 862.455162  -1.238  0.21623    
-    ## D1PB191                   0.005213   0.132728 808.829953   0.039  0.96868    
-    ## B4HMETMW                  0.053842   0.026894 841.649758   2.002  0.04561 *  
-    ## B1SA11W1                 -0.009451   0.088285 866.854524  -0.107  0.91477    
-    ## B3TEMZ3                  -0.551430   0.032656 848.576769 -16.886  < 2e-16 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-Change in Executive Functioning
-
-``` r
-lmm_model3_ef <- lmer(D3TEF ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1|M2FAMNUM) + B3TEFZ3, REML = FALSE, data = full_df_no_invalid)
-anova(lmm_model2_ef, lmm_model3_ef)
-```
-
-    ## Data: full_df_no_invalid
-    ## Models:
-    ## lmm_model2_ef: D3TEF ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM)
-    ## lmm_model3_ef: D3TEF ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM) + B3TEFZ3
-    ##               npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)    
-    ## lmm_model2_ef   19 1427.7 1518.2 -694.84  1389.68                         
-    ## lmm_model3_ef   20 1001.1 1096.4 -480.56   961.12 428.56  1  < 2.2e-16 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-``` r
-summary(lmm_model3_ef)
-```
-
-    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
-    ##   method [lmerModLmerTest]
-    ## Formula: D3TEF ~ 1 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI +  
-    ##     B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + (1 | M2FAMNUM) +  
-    ##     B3TEFZ3
-    ##    Data: full_df_no_invalid
-    ## 
-    ##      AIC      BIC   logLik deviance df.resid 
-    ##   1001.1   1096.4   -480.6    961.1      847 
-    ## 
-    ## Scaled residuals: 
-    ##     Min      1Q  Median      3Q     Max 
-    ## -4.7053 -0.5046  0.0246  0.5808  3.1750 
-    ## 
-    ## Random effects:
-    ##  Groups   Name        Variance Std.Dev.
-    ##  M2FAMNUM (Intercept) 0.04655  0.2157  
-    ##  Residual             0.13236  0.3638  
-    ## Number of obs: 867, groups:  M2FAMNUM, 766
-    ## 
-    ## Fixed effects:
-    ##                           Estimate Std. Error         df t value Pr(>|t|)    
-    ## (Intercept)             -1.932e-01  5.969e-02  8.128e+02  -3.236  0.00126 ** 
-    ## ctq_total                3.355e-04  1.119e-03  8.344e+02   0.300  0.76439    
-    ## B1PRSEX2                -6.495e-02  3.092e-02  8.414e+02  -2.101  0.03597 *  
-    ## B1PAGE_M2               -1.322e-01  1.637e-02  7.796e+02  -8.075 2.55e-15 ***
-    ## B1PF7A2                 -1.209e-01  4.337e-02  8.409e+02  -2.789  0.00541 ** 
-    ## B1PTSEI                  4.409e-02  1.544e-02  8.578e+02   2.855  0.00440 ** 
-    ## B1PA39former_smoker     -2.010e-02  3.537e-02  8.617e+02  -0.568  0.57001    
-    ## B1PA39current_smoker    -4.261e-02  5.317e-02  8.670e+02  -0.801  0.42315    
-    ## B4ALCOHformer_moderate   6.649e-02  5.770e-02  8.662e+02   1.152  0.24947    
-    ## B4ALCOHformer_heavy      2.388e-02  6.435e-02  8.670e+02   0.371  0.71066    
-    ## B4ALCOHcurrent_light    -4.960e-02  7.443e-02  8.650e+02  -0.666  0.50536    
-    ## B4ALCOHcurrent_moderate  5.799e-02  4.822e-02  8.663e+02   1.203  0.22938    
-    ## B4ALCOHcurrent_heavy     1.775e-02  5.006e-02  8.628e+02   0.355  0.72295    
-    ## D1PB19-1                 5.763e-02  4.869e-02  8.639e+02   1.184  0.23692    
-    ## D1PB191                  7.774e-02  7.209e-02  8.207e+02   1.078  0.28115    
-    ## B4HMETMW                 1.722e-02  1.459e-02  8.463e+02   1.180  0.23837    
-    ## B1SA11W1                -9.461e-02  4.783e-02  8.670e+02  -1.978  0.04824 *  
-    ## B3TEFZ3                 -4.569e-01  1.940e-02  8.534e+02 -23.546  < 2e-16 ***
+    ## (Intercept)              6.094e-01  1.785e-01  8.668e+02   3.414 0.000669 ***
+    ## B3TEFZ3                 -4.560e-01  1.916e-02  8.530e+02 -23.801  < 2e-16 ***
+    ## ctq_total                3.822e-04  1.105e-03  8.330e+02   0.346 0.729500    
+    ## B1PRSEX2                -5.734e-02  3.057e-02  8.405e+02  -1.876 0.061056 .  
+    ## B1PAGE_M2               -1.365e-01  1.619e-02  7.742e+02  -8.427  < 2e-16 ***
+    ## B1PF7A2                 -3.607e-02  4.638e-02  8.517e+02  -0.778 0.436959    
+    ## B1PTSEI                  4.136e-02  1.525e-02  8.568e+02   2.712 0.006821 ** 
+    ## B1PA39former_smoker     -1.501e-02  3.493e-02  8.607e+02  -0.430 0.667521    
+    ## B1PA39current_smoker    -3.637e-02  5.250e-02  8.669e+02  -0.693 0.488667    
+    ## B4ALCOHformer_moderate   6.636e-02  5.696e-02  8.663e+02   1.165 0.244309    
+    ## B4ALCOHformer_heavy      3.885e-02  6.361e-02  8.670e+02   0.611 0.541536    
+    ## B4ALCOHcurrent_light    -4.798e-02  7.347e-02  8.645e+02  -0.653 0.513869    
+    ## B4ALCOHcurrent_moderate  5.594e-02  4.760e-02  8.664e+02   1.175 0.240213    
+    ## B4ALCOHcurrent_heavy     2.513e-02  4.945e-02  8.625e+02   0.508 0.611379    
+    ## D1PB19-1                 6.514e-02  4.809e-02  8.636e+02   1.354 0.175947    
+    ## D1PB191                  6.469e-02  7.120e-02  8.138e+02   0.909 0.363819    
+    ## B4HMETMW                 1.752e-02  1.440e-02  8.442e+02   1.217 0.224116    
+    ## B1SA11W1                -8.668e-02  4.725e-02  8.670e+02  -1.835 0.066904 .  
+    ## yr_lapsed               -8.756e-02  1.838e-02  8.666e+02  -4.764 2.23e-06 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
@@ -1562,14 +1562,14 @@ Take the last table for example (dependent variable: change in EF):
                          Estimate   Std. Error       df   t value Pr(>|t|)  
                          
 
-B1PAGE_M2 -1.322e-01 1.637e-02 7.796e+02 -8.075 2.55e-15 \*** B1PTSEI
-4.409e-02 1.544e-02 8.578e+02 2.855 0.00440 **
+B1PAGE_M2 -1.365e-01 1.619e-02 7.742e+02 -8.427 \< 2e-16 \*** B1PTSEI
+4.136e-02 1.525e-02 8.568e+02 2.712 0.006821 **
 
 My interpretation is: age significantly predicts the change in executive
 functioning, i.e. on average, 1 year increase of age will result in
-0.132 more decline in Executive Functioning scores. Similarly, SES
+0.137 more decline in Executive Functioning scores. Similarly, SES
 significantly predicts the change in executive functioning, i.e. on
-average, 1 unit increase in SES will result in 0.0441 more increase in
+average, 1 unit increase in SES will result in 0.0414 more increase in
 the Executive Functioning scores.
 
 For those insignificant results, the interpretation will thus be: the
@@ -1577,113 +1577,330 @@ For those insignificant results, the interpretation will thus be: the
 <dependent variable>. For example, the ctq_total did not significantly
 predict the change in executive functioning.
 
-**For Discussion:**
+*Since we are also concerning the threat and deprivation*
 
-*1. What does the “time” variable mean in the Lynch & Lachmen’s paper?
-Would it be useful to include?*
+**threat**
 
-I think it means the time between M2 and M3. Thus, can we include this
-to our analysis? I lean to the answer “yes” since it intuitively makes
-sense that people may have change in cognitive function over the period
-of \~10 years.
-
-*2. Would adding interaction terms to “ctq_total” make sense?*
-
-e.g. age and ctq_total. Maybe age groups, since my intuition is that
-cognitive functioning not necessarily decrease with increase of age:
-people may perform better in the tests in their 30’s in M3 than 10 years
-ago in their 20’s. These kinds of relationship may be masked in previous
-steps and could be observed through stratification. However, the problem
-is that the age group cutoff can be fairly arbitrary.
-
-*3. Modification effect, still need more research.*
-
-## Multivariate Multiple/Multilevel Regression Models
-
-This method is also new to me, but I would like to want to explore the
-possibilities of combining the three independent variables (Composite
-scores, Episodic Memory, Executive Functioning) and see what are the
-outcomes. Thus, here I introduce the concept of “multivariate multilevel
-regression”, where multiple variables can be found on the LHS of the
-equation (i.e. multiple independent variables).
-
--   When do we use multivariate regression model
-    [(ref)](https://www.analyticsvidhya.com/blog/2022/01/a-brief-introduction-to-multilevel-modelling/#:~:text=Advantages%20of%20Multilevel%20Modelling&text=Better%20inferences%3A%20A%20multilevel%20regression,and%20overstatement%20of%20coefficient%20significance.):
-    When individual data is collected from a random sample of clusters
-    (schools, areas, hospitals) at one point in time then observations
-    within these clusters are more likely to be similar. Here,
-    participants from different families might perform differently in
-    tests, thus having different scores.
-
-**What’s the difference: **
-
--   Multiple regression model: we have only *one* dependent variable *Y*
-    and multiple independent variables *X*′*s*. We are modeling the
-    linear relationship between the outcome and the predictor, while
-    adjusting for other covariates.
-
--   Multivariate regression model: we have *multiple* dependent
-    variables *Y*′*s* and multiple *X*′*s*. The joint mean of the
-    multiple dependent variables is being predicted by the independent
-    variables. We are modeling the *variance-covariance matrix* in the
-    set of *Y*′*s*, that is, we are able to know the covariance between
-    our three dependent variables (*Δ*Composite Score, *Δ*Episodic
-    Memory, *Δ*Executive Function). But, does that improve the results
-    or does that help us with the modeling? By now I only found the
-    ability to model a joint distribution may be the biggest advantage
-    of using this method.
-
-For implementation, I used the library `brms`. Here is my
-[reference](https://cran.r-project.org/web/packages/brms/vignettes/brms_multivariate.html)
+Change in Composite Scores & threat
 
 ``` r
-# multivariate normal model
-bform1 = bf(mvbind(D3TCOMP, D3TEM, D3TEF) ~ ctq_total + B3TCOMPZ3 + B3TEMZ3 + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + (1|p|M2FAMNUM)) + 
-  set_rescor(TRUE) # we don't have missing values in predictors
-
-fit1 = brm(bform1, data = full_df_no_invalid, chains = 3, cores = 4)
-fit = add_criterion(fit1, "loo")
+lmm_model2_cs_thr <- lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
 ```
 
 ``` r
-#saveRDS(fit, "./results/fit.rds")
-fit = readRDS("./results/fit.rds")
-sum_fit = summary(fit)
+summary(lmm_model2_cs_thr)
+```
+
+    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
+    ##   method [lmerModLmerTest]
+    ## Formula: D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A +  
+    ##     B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W +  
+    ##     yr_lapsed + (1 | M2FAMNUM)
+    ##    Data: full_df_no_invalid
+    ## 
+    ##      AIC      BIC   logLik deviance df.resid 
+    ##    872.7    972.8   -415.4    830.7      846 
+    ## 
+    ## Scaled residuals: 
+    ##     Min      1Q  Median      3Q     Max 
+    ## -2.6233 -0.5633  0.0069  0.5563  3.7358 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  M2FAMNUM (Intercept) 0.04662  0.2159  
+    ##  Residual             0.10776  0.3283  
+    ## Number of obs: 867, groups:  M2FAMNUM, 766
+    ## 
+    ## Fixed effects:
+    ##                           Estimate Std. Error         df t value Pr(>|t|)    
+    ## (Intercept)               0.404486   0.167052 866.980030   2.421  0.01567 *  
+    ## B3TCOMPZ3                -0.510455   0.017218 862.702736 -29.647  < 2e-16 ***
+    ## thr_total                -0.002532   0.001623 833.178095  -1.560  0.11912    
+    ## B1PRSEX2                  0.018816   0.028920 839.932695   0.651  0.51546    
+    ## B1PAGE_M2                -0.141374   0.015284 772.376302  -9.250  < 2e-16 ***
+    ## B1PF7A2                  -0.071266   0.043501 853.394443  -1.638  0.10174    
+    ## B1PTSEI                   0.044045   0.014340 851.118223   3.071  0.00220 ** 
+    ## B1PA39former_smoker       0.008691   0.032806 854.649694   0.265  0.79114    
+    ## B1PA39current_smoker     -0.024180   0.049201 865.756913  -0.491  0.62324    
+    ## B4ALCOHformer_moderate    0.094823   0.053553 866.881296   1.771  0.07697 .  
+    ## B4ALCOHformer_heavy       0.033474   0.059687 866.800884   0.561  0.57506    
+    ## B4ALCOHcurrent_light      0.043528   0.068976 860.592588   0.631  0.52818    
+    ## B4ALCOHcurrent_moderate   0.112406   0.044670 866.979247   2.516  0.01204 *  
+    ## B4ALCOHcurrent_heavy      0.019321   0.046456 864.463343   0.416  0.67759    
+    ## D1PB19-1                 -0.016770   0.045178 861.753215  -0.371  0.71059    
+    ## D1PB191                   0.007896   0.066759 797.867724   0.118  0.90587    
+    ## B4HMETMW                  0.020980   0.013512 837.053029   1.553  0.12086    
+    ## B1SA11W1                 -0.096869   0.044456 866.840926  -2.179  0.02960 *  
+    ## yr_lapsed                -0.050773   0.017267 866.298500  -2.941  0.00336 ** 
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Change in Episodic Memory
+
+``` r
+lmm_model2_em_thr <- lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
 ```
 
 ``` r
-# some statistics to ponder about
-corr_results = VarCorr(fit)
-corr_results$M2FAMNUM$cor # correlation
-corr_results$M2FAMNUM$cov # covariance matrix
+summary(lmm_model2_em_thr)
 ```
 
-“p-value” in multivariate models’ results? Here is some very primitive
-way of calculating the p-value.
+    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
+    ##   method [lmerModLmerTest]
+    ## Formula: D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A +  
+    ##     B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W +  
+    ##     yr_lapsed + (1 | M2FAMNUM)
+    ##    Data: full_df_no_invalid
+    ## 
+    ##      AIC      BIC   logLik deviance df.resid 
+    ##   2066.2   2166.2  -1012.1   2024.2      846 
+    ## 
+    ## Scaled residuals: 
+    ##      Min       1Q   Median       3Q      Max 
+    ## -2.56475 -0.58225 -0.06345  0.50102  2.74169 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  M2FAMNUM (Intercept) 0.1798   0.4240  
+    ##  Residual             0.4314   0.6568  
+    ## Number of obs: 867, groups:  M2FAMNUM, 766
+    ## 
+    ## Fixed effects:
+    ##                           Estimate Std. Error         df t value Pr(>|t|)    
+    ## (Intercept)               0.262337   0.332099 866.958721   0.790   0.4298    
+    ## B3TEMZ3                  -0.552038   0.032669 849.796766 -16.898  < 2e-16 ***
+    ## thr_total                -0.007686   0.003225 836.205924  -2.383   0.0174 *  
+    ## B1PRSEX2                  0.420349   0.060245 849.035072   6.977 6.06e-12 ***
+    ## B1PAGE_M2                -0.209627   0.029131 770.681304  -7.196 1.47e-12 ***
+    ## B1PF7A2                   0.001498   0.083839 855.656929   0.018   0.9857    
+    ## B1PTSEI                   0.043384   0.027961 851.816433   1.552   0.1211    
+    ## B1PA39former_smoker       0.056923   0.065357 855.950398   0.871   0.3840    
+    ## B1PA39current_smoker     -0.140244   0.097903 866.191083  -1.432   0.1524    
+    ## B4ALCOHformer_moderate    0.123614   0.106590 866.755640   1.160   0.2465    
+    ## B4ALCOHformer_heavy       0.052245   0.118772 866.992620   0.440   0.6601    
+    ## B4ALCOHcurrent_light      0.192083   0.137360 862.377159   1.398   0.1624    
+    ## B4ALCOHcurrent_moderate   0.177825   0.088885 866.745416   2.001   0.0457 *  
+    ## B4ALCOHcurrent_heavy     -0.019083   0.092441 864.006471  -0.206   0.8365    
+    ## D1PB19-1                 -0.106298   0.089872 862.599477  -1.183   0.2372    
+    ## D1PB191                   0.001169   0.132930 807.635797   0.009   0.9930    
+    ## B4HMETMW                  0.054044   0.026897 841.675991   2.009   0.0448 *  
+    ## B1SA11W1                 -0.009162   0.088466 866.941523  -0.104   0.9175    
+    ## yr_lapsed                -0.047880   0.034370 866.507250  -1.393   0.1640    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Change in Executive Functioning
 
 ``` r
-sum_fit$fixed %>% 
-  rownames_to_column() %>% 
-  janitor::clean_names() %>% 
-  mutate(p_val = 2*pnorm(-abs(estimate/est_error), mean = 0, sd = 1)) %>%
-  mutate(sig = case_when(p_val < 0.001 ~ "***",
-                         p_val < 0.01 ~ "**",
-                         p_val < 0.05 ~ "*",
-                         p_val < 0.1 ~ ".",
-                         p_val >= 0.1 ~ "")) %>% 
-  select(rowname, p_val, sig, everything())
+lmm_model2_ef_thr <- lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
 ```
-
-May try
-[MCMCglmm](http://cran.nexr.com/web/packages/MCMCglmm/vignettes/CourseNotes.pdf)
-packages since `brms` takes a long time. Need to tune the prior
-distribution for the function to work properly.
 
 ``` r
-# settings
-full_df_no_invalid_mcmc = as.data.frame(full_df_no_invalid) # need dataframe instead of tibble
-family_set = c("gaussian", "gaussian", "gaussian")  # response variable categories
-
-# fitting the model
-fit_mcmc = MCMCglmm(cbind(D3TCOMP, D3TEM, D3TEF) ~ ctq_total + B3TCOMPZ3 + B3TEMZ3 + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH, random = ~us(trait):M2FAMNUM, rcov = ~us(trait):units, data = full_df_no_invalid_mcmc, family = family_set, verbose = FALSE)
+summary(lmm_model2_ef_thr)
 ```
+
+    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
+    ##   method [lmerModLmerTest]
+    ## Formula: D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A +  
+    ##     B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W +  
+    ##     yr_lapsed + (1 | M2FAMNUM)
+    ##    Data: full_df_no_invalid
+    ## 
+    ##      AIC      BIC   logLik deviance df.resid 
+    ##    980.7   1080.7   -469.3    938.7      846 
+    ## 
+    ## Scaled residuals: 
+    ##     Min      1Q  Median      3Q     Max 
+    ## -4.6681 -0.5127  0.0314  0.5595  3.1957 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  M2FAMNUM (Intercept) 0.04622  0.215   
+    ##  Residual             0.12816  0.358   
+    ## Number of obs: 867, groups:  M2FAMNUM, 766
+    ## 
+    ## Fixed effects:
+    ##                           Estimate Std. Error         df t value Pr(>|t|)    
+    ## (Intercept)              6.088e-01  1.777e-01  8.669e+02   3.426  0.00064 ***
+    ## B3TEFZ3                 -4.560e-01  1.915e-02  8.530e+02 -23.810  < 2e-16 ***
+    ## thr_total                7.259e-04  1.723e-03  8.313e+02   0.421  0.67370    
+    ## B1PRSEX2                -5.787e-02  3.065e-02  8.395e+02  -1.888  0.05936 .  
+    ## B1PAGE_M2               -1.362e-01  1.624e-02  7.754e+02  -8.388 2.33e-16 ***
+    ## B1PF7A2                 -3.603e-02  4.637e-02  8.517e+02  -0.777  0.43736    
+    ## B1PTSEI                  4.137e-02  1.525e-02  8.569e+02   2.713  0.00680 ** 
+    ## B1PA39former_smoker     -1.525e-02  3.494e-02  8.604e+02  -0.437  0.66258    
+    ## B1PA39current_smoker    -3.638e-02  5.239e-02  8.669e+02  -0.695  0.48755    
+    ## B4ALCOHformer_moderate   6.591e-02  5.698e-02  8.662e+02   1.157  0.24771    
+    ## B4ALCOHformer_heavy      3.877e-02  6.356e-02  8.670e+02   0.610  0.54207    
+    ## B4ALCOHcurrent_light    -4.749e-02  7.346e-02  8.644e+02  -0.647  0.51813    
+    ## B4ALCOHcurrent_moderate  5.602e-02  4.756e-02  8.663e+02   1.178  0.23919    
+    ## B4ALCOHcurrent_heavy     2.525e-02  4.943e-02  8.624e+02   0.511  0.60952    
+    ## D1PB19-1                 6.516e-02  4.809e-02  8.637e+02   1.355  0.17578    
+    ## D1PB191                  6.411e-02  7.123e-02  8.146e+02   0.900  0.36837    
+    ## B4HMETMW                 1.753e-02  1.440e-02  8.442e+02   1.217  0.22397    
+    ## B1SA11W1                -8.751e-02  4.732e-02  8.670e+02  -1.849  0.06475 .  
+    ## yr_lapsed               -8.753e-02  1.838e-02  8.666e+02  -4.763 2.24e-06 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+**deprivation** Change in Composite Scores
+
+``` r
+lmm_model2_cs_dep <- lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+```
+
+``` r
+summary(lmm_model2_cs_dep)
+```
+
+    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
+    ##   method [lmerModLmerTest]
+    ## Formula: D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A +  
+    ##     B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W +  
+    ##     yr_lapsed + (1 | M2FAMNUM)
+    ##    Data: full_df_no_invalid
+    ## 
+    ##      AIC      BIC   logLik deviance df.resid 
+    ##    871.3    971.4   -414.7    829.3      846 
+    ## 
+    ## Scaled residuals: 
+    ##     Min      1Q  Median      3Q     Max 
+    ## -2.6175 -0.5633  0.0008  0.5451  3.7347 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  M2FAMNUM (Intercept) 0.04726  0.2174  
+    ##  Residual             0.10693  0.3270  
+    ## Number of obs: 867, groups:  M2FAMNUM, 766
+    ## 
+    ## Fixed effects:
+    ##                           Estimate Std. Error         df t value Pr(>|t|)    
+    ## (Intercept)               0.422163   0.167576 866.958018   2.519  0.01194 *  
+    ## B3TCOMPZ3                -0.510797   0.017200 863.455333 -29.698  < 2e-16 ***
+    ## dep_total                -0.004489   0.002298 852.097987  -1.953  0.05110 .  
+    ## B1PRSEX2                  0.016155   0.028687 841.282427   0.563  0.57349    
+    ## B1PAGE_M2                -0.139902   0.015159 772.985996  -9.229  < 2e-16 ***
+    ## B1PF7A2                  -0.069491   0.043500 852.892588  -1.598  0.11052    
+    ## B1PTSEI                   0.043598   0.014333 850.477372   3.042  0.00242 ** 
+    ## B1PA39former_smoker       0.007449   0.032741 854.304577   0.228  0.82009    
+    ## B1PA39current_smoker     -0.019791   0.049293 865.660007  -0.401  0.68815    
+    ## B4ALCOHformer_moderate    0.093428   0.053411 866.991164   1.749  0.08061 .  
+    ## B4ALCOHformer_heavy       0.036017   0.059666 866.589311   0.604  0.54624    
+    ## B4ALCOHcurrent_light      0.049515   0.068975 860.336584   0.718  0.47304    
+    ## B4ALCOHcurrent_moderate   0.115339   0.044693 866.999064   2.581  0.01002 *  
+    ## B4ALCOHcurrent_heavy      0.021810   0.046458 864.976932   0.469  0.63886    
+    ## D1PB19-1                 -0.017176   0.045137 861.254396  -0.381  0.70365    
+    ## D1PB191                   0.004329   0.066608 793.887695   0.065  0.94820    
+    ## B4HMETMW                  0.020971   0.013498 836.264867   1.554  0.12066    
+    ## B1SA11W1                 -0.098681   0.043991 866.633213  -2.243  0.02514 *  
+    ## yr_lapsed                -0.050413   0.017254 866.247325  -2.922  0.00357 ** 
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Change in Episodic Memory
+
+``` r
+lmm_model2_em_dep <- lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+```
+
+``` r
+summary(lmm_model2_em_dep)
+```
+
+    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
+    ##   method [lmerModLmerTest]
+    ## Formula: D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A +  
+    ##     B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W +  
+    ##     yr_lapsed + (1 | M2FAMNUM)
+    ##    Data: full_df_no_invalid
+    ## 
+    ##      AIC      BIC   logLik deviance df.resid 
+    ##   2064.9   2165.0  -1011.5   2022.9      846 
+    ## 
+    ## Scaled residuals: 
+    ##      Min       1Q   Median       3Q      Max 
+    ## -2.59478 -0.58037 -0.07277  0.50228  2.72441 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  M2FAMNUM (Intercept) 0.1758   0.4193  
+    ##  Residual             0.4342   0.6589  
+    ## Number of obs: 867, groups:  M2FAMNUM, 766
+    ## 
+    ## Fixed effects:
+    ##                           Estimate Std. Error         df t value Pr(>|t|)    
+    ## (Intercept)               0.297101   0.333134 866.902817   0.892   0.3727    
+    ## B3TEMZ3                  -0.550560   0.032638 849.564497 -16.869  < 2e-16 ***
+    ## dep_total                -0.012043   0.004566 852.815932  -2.638   0.0085 ** 
+    ## B1PRSEX2                  0.410141   0.059734 850.664939   6.866 1.27e-11 ***
+    ## B1PAGE_M2                -0.204350   0.028877 771.753352  -7.077 3.32e-12 ***
+    ## B1PF7A2                   0.006670   0.083836 855.063825   0.080   0.9366    
+    ## B1PTSEI                   0.042028   0.027964 853.297156   1.503   0.1332    
+    ## B1PA39former_smoker       0.052855   0.065254 857.304043   0.810   0.4182    
+    ## B1PA39current_smoker     -0.131285   0.098105 866.431686  -1.338   0.1812    
+    ## B4ALCOHformer_moderate    0.117247   0.106315 866.812647   1.103   0.2704    
+    ## B4ALCOHformer_heavy       0.055935   0.118746 866.990607   0.471   0.6377    
+    ## B4ALCOHcurrent_light      0.207462   0.137394 863.378918   1.510   0.1314    
+    ## B4ALCOHcurrent_moderate   0.183597   0.088933 866.709995   2.064   0.0393 *  
+    ## B4ALCOHcurrent_heavy     -0.013358   0.092437 864.003798  -0.145   0.8851    
+    ## D1PB19-1                 -0.106120   0.089816 862.665245  -1.182   0.2377    
+    ## D1PB191                  -0.011522   0.132745 808.938594  -0.087   0.9309    
+    ## B4HMETMW                  0.053970   0.026885 843.075632   2.007   0.0450 *  
+    ## B1SA11W1                 -0.018451   0.087549 866.917054  -0.211   0.8331    
+    ## yr_lapsed                -0.047171   0.034349 866.567399  -1.373   0.1700    
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Change in Executive Functioning
+
+``` r
+lmm_model2_ef_dep <- lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+```
+
+``` r
+summary(lmm_model2_ef_dep)
+```
+
+    ## Linear mixed model fit by maximum likelihood . t-tests use Satterthwaite's
+    ##   method [lmerModLmerTest]
+    ## Formula: D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A +  
+    ##     B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W +  
+    ##     yr_lapsed + (1 | M2FAMNUM)
+    ##    Data: full_df_no_invalid
+    ## 
+    ##      AIC      BIC   logLik deviance df.resid 
+    ##    980.8   1080.9   -469.4    938.8      846 
+    ## 
+    ## Scaled residuals: 
+    ##     Min      1Q  Median      3Q     Max 
+    ## -4.6666 -0.5156  0.0320  0.5591  3.1851 
+    ## 
+    ## Random effects:
+    ##  Groups   Name        Variance Std.Dev.
+    ##  M2FAMNUM (Intercept) 0.04622  0.215   
+    ##  Residual             0.12819  0.358   
+    ## Number of obs: 867, groups:  M2FAMNUM, 766
+    ## 
+    ## Fixed effects:
+    ##                           Estimate Std. Error         df t value Pr(>|t|)    
+    ## (Intercept)              6.155e-01  1.784e-01  8.668e+02   3.450 0.000587 ***
+    ## B3TEFZ3                 -4.562e-01  1.916e-02  8.531e+02 -23.812  < 2e-16 ***
+    ## dep_total                4.102e-04  2.445e-03  8.486e+02   0.168 0.866797    
+    ## B1PRSEX2                -5.647e-02  3.044e-02  8.399e+02  -1.855 0.063906 .  
+    ## B1PAGE_M2               -1.370e-01  1.612e-02  7.744e+02  -8.498  < 2e-16 ***
+    ## B1PF7A2                 -3.582e-02  4.639e-02  8.512e+02  -0.772 0.440303    
+    ## B1PTSEI                  4.125e-02  1.525e-02  8.571e+02   2.705 0.006975 ** 
+    ## B1PA39former_smoker     -1.463e-02  3.491e-02  8.607e+02  -0.419 0.675292    
+    ## B1PA39current_smoker    -3.532e-02  5.253e-02  8.669e+02  -0.672 0.501503    
+    ## B4ALCOHformer_moderate   6.732e-02  5.688e-02  8.665e+02   1.184 0.236906    
+    ## B4ALCOHformer_heavy      3.964e-02  6.360e-02  8.670e+02   0.623 0.533345    
+    ## B4ALCOHcurrent_light    -4.803e-02  7.353e-02  8.647e+02  -0.653 0.513809    
+    ## B4ALCOHcurrent_moderate  5.641e-02  4.763e-02  8.664e+02   1.184 0.236583    
+    ## B4ALCOHcurrent_heavy     2.538e-02  4.947e-02  8.627e+02   0.513 0.607996    
+    ## D1PB19-1                 6.499e-02  4.809e-02  8.635e+02   1.351 0.176926    
+    ## D1PB191                  6.544e-02  7.116e-02  8.129e+02   0.920 0.358082    
+    ## B4HMETMW                 1.751e-02  1.441e-02  8.443e+02   1.215 0.224552    
+    ## B1SA11W1                -8.472e-02  4.687e-02  8.670e+02  -1.808 0.071009 .  
+    ## yr_lapsed               -8.754e-02  1.838e-02  8.666e+02  -4.762 2.24e-06 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
