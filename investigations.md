@@ -1208,7 +1208,7 @@ have measured the same participants multiple times, and there are
 correlation within subjects that we cannot ignore.
 
 The **assumption** we were making when constructing the model is:
-participants from different families would have similar intercepts of
+participants from different families would have different intercepts of
 cognitive functioning at the baseline (i.e. having different intercept).
 We may expect each family has some differences that affects the
 intercept but not the slope (all families will have the same rate of
@@ -1235,6 +1235,31 @@ elapsed time between M2 and M3 for the population. Thus, maybe we would
 like to move from the “change in magnitude” to “rate of change per year
 or per month”. In this case, I don’t think we still need to index the
 baseline. Or, I could include the time between M2 and M3 as a covariate.
+
+*What are the variables included in the model?*
+
+Dependent variable:
+
+-   D3TCOMP: change in composite scores
+-   D3TEM: change in episodic memory
+-   D3TEF: change in executive functioning
+
+Independent variable:
+
+-   B3TCOMPZ3, B3TEFZ3, B3TEMZ3: three baseline variables (of cognitive
+    functioning) measured at M2
+-   M2FAMNUM: family number
+-   yr_lapsed: years between M2 and M3 for each participants
+-   B1PRSEX: sex, male = 1 (reference), female = 2
+-   B1PAGE_M2: age measured at M2
+-   B1PF7A: racial origin, white = 1 (reference), non-white = 2
+-   B1PTSEI: SES
+-   B1PA39: cigarette smoking, reference: non_smoker
+-   B4ALCOH: alcohol drinking, reference: former_light/abs
+-   D1PB19: marital status change. 0 = no change (reference), -1 =
+    divorce or equivalent, 1 = married
+-   B4HMETMW: exercise minutes per week
+-   B1SA11W: chronic sleep problem in the past 12 months
 
 ### random intercept model (the very basic)
 

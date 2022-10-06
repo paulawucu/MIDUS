@@ -766,7 +766,7 @@ anova(lmm3_9_base, lmm3_9_a)
 
 First, the reason we would like to use multilevel modeling is because we have measured the same participants multiple times, and there are correlation within subjects that we cannot ignore.
 
-The **assumption** we were making when constructing the model is: participants from different families would have similar intercepts of cognitive functioning at the baseline (i.e. having different intercept). We may expect each family has some differences that affects the intercept but not the slope (all families will have the same rate of change throughout time), and that members of the same family would share the same baseline cognitive functioning. 
+The **assumption** we were making when constructing the model is: participants from different families would have different intercepts of cognitive functioning at the baseline (i.e. having different intercept). We may expect each family has some differences that affects the intercept but not the slope (all families will have the same rate of change throughout time), and that members of the same family would share the same baseline cognitive functioning. 
 
 *What would the model be like?*
 In Dr. Lachman's paper, we have seen that they used multilevel models to evaluate different predictors of both level of and change in cognitive functioning. They have defined a model with level 1 slope (non time-varying) and level 2 random intercept (different baseline for each family). However, one thing I have understood wrong is the equation: It's not necessarily true that we put two predictor on the LHS of the equation as independent variables and called it multilevel modeling. We are, indeed, predicting both level and intercept, but the model itself will yield fitted results of intercept and slope. We are still predicting one independent variable: change in composite score, episodic memory, or executive functioning. The slopes and intercepts are by-products of the modeling.
@@ -775,6 +775,29 @@ In Dr. Lachman's paper, we have seen that they used multilevel models to evaluat
 *Thinking about the change per month/years*
 
 Last time, we've seen that there's a huge variance associated with the elapsed time between M2 and M3 for the population. Thus, maybe we would like to move from the "change in magnitude" to "rate of change per year or per month". In this case, I don't think we still need to index the baseline. Or, I could include the time between M2 and M3 as a covariate. 
+
+*What are the variables included in the model?*
+
+Dependent variable: 
+
+* D3TCOMP: change in composite scores
+* D3TEM: change in episodic memory
+* D3TEF: change in executive functioning
+
+Independent variable:
+
+* B3TCOMPZ3, B3TEFZ3, B3TEMZ3: three baseline variables (of cognitive functioning) measured at M2
+* M2FAMNUM: family number
+* yr_lapsed: years between M2 and M3 for each participants
+* B1PRSEX: sex, male = 1 (reference), female = 2
+* B1PAGE_M2: age measured at M2
+* B1PF7A: racial origin, white = 1 (reference), non-white = 2
+* B1PTSEI: SES
+* B1PA39: cigarette smoking, reference: non_smoker
+* B4ALCOH: alcohol drinking, reference: former_light/abs
+* D1PB19: marital status change. 0 = no change (reference), -1 = divorce or equivalent, 1 = married
+* B4HMETMW: exercise minutes per week
+* B1SA11W: chronic sleep problem in the past 12 months 
 
 
 ### random intercept model (the very basic)
