@@ -1167,13 +1167,13 @@ coefficients *β*, we should use maximum likelihood (ML)
 
 We are interested in investigating how these eudaimonia factors have
 interacted with the childhood trauma. Thus, the interaction term
-included in the larger model should be
-**<trauma total score>×<eudaimonia terms>**. I also refit the
-nested/smaller model by adding the eudaimonia terms as the covariate.
-Similarly, the same term was also added to the larger model. Thus, when
-we comparing models, we are truly comparing the effect modification of
-eudaimonia factors on childhood trauma rather than introducing a new
-term to the model that has never seen beforehand.
+included in the larger model should be **trauma total score × eudaimonia
+terms**. I also refit the nested/smaller model by adding the eudaimonia
+terms as the covariate. Similarly, the same term was also added to the
+larger model. Thus, when we comparing models, we are truly comparing the
+effect modification of eudaimonia factors on childhood trauma
+(i.e. their interaction) rather than introducing a new term that has
+never seen by the model beforehand.
 
 ## Results
 
