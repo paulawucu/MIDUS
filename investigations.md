@@ -394,811 +394,6 @@ first, fit the model with a list of covariates
 -   smoking, drug use, alcohol consumption
 -   exercise and chronic sleep problem
 
-## Base Model
-
-``` r
-lmm_base_1 = lme(D3TCOMP~ ctq_total + B3TCOMPZ3, random = ~1 | M2FAMNUM, data = full_df_no_invalid)
-summary(lmm_base_1)$tTable %>% 
-  knitr::kable(caption = "Base Model - Composite Score ($\\Delta$)")
-```
-
-|             |      Value | Std.Error |  DF |    t-value |   p-value |
-|:------------|-----------:|----------:|----:|-----------:|----------:|
-| (Intercept) | -0.0485871 | 0.0432958 | 765 |  -1.122212 | 0.2621243 |
-| ctq_total   | -0.0014657 | 0.0010514 |  99 |  -1.394006 | 0.1664367 |
-| B3TCOMPZ3   | -0.4323184 | 0.0159102 |  99 | -27.172437 | 0.0000000 |
-
-Base Model - Composite Score (*Δ*)
-
-``` r
-lmm_base_2 = lme(D3TEM~ ctq_total + B3TEMZ3, random = ~1 | M2FAMNUM, data = full_df_no_invalid)
-summary(lmm_base_2)$tTable %>% 
-  knitr::kable(caption = "Base Model - Episodic Memory ($\\Delta$)")
-```
-
-|             |      Value | Std.Error |  DF |    t-value |   p-value |
-|:------------|-----------:|----------:|----:|-----------:|----------:|
-| (Intercept) |  0.0550330 | 0.0849678 | 765 |   0.647692 | 0.5173785 |
-| ctq_total   | -0.0028144 | 0.0020769 |  99 |  -1.355064 | 0.1784811 |
-| B3TEMZ3     | -0.4385340 | 0.0317557 |  99 | -13.809617 | 0.0000000 |
-
-Base Model - Episodic Memory (*Δ*)
-
-``` r
-lmm_base_3 = lme(D3TEF~ ctq_total + B3TEFZ3, random = ~1 | M2FAMNUM, data = full_df_no_invalid)
-summary(lmm_base_3)$tTable %>% 
-  knitr::kable(caption = "Base Model - Executive Function ($\\Delta$)")
-```
-
-|             |      Value | Std.Error |  DF |     t-value |   p-value |
-|:------------|-----------:|----------:|----:|------------:|----------:|
-| (Intercept) | -0.2694083 | 0.0462593 | 765 |  -5.8238776 | 0.0000000 |
-| ctq_total   |  0.0005408 | 0.0011192 |  99 |   0.4832297 | 0.6299996 |
-| B3TEFZ3     | -0.3756244 | 0.0176892 |  99 | -21.2347179 | 0.0000000 |
-
-Base Model - Executive Function (*Δ*)
-
-``` r
-full_df_test = read_csv("./data/full_df.csv") %>% 
-  select(-1)
-# D3TCOMP
-full_df_test %>% 
-  select(D3TCOMP, B1PAGE_M2) %>% 
-  ggplot(aes(x = B1PAGE_M2, y = D3TCOMP)) + 
-  geom_point() +
-  geom_smooth(aes(color = 'red'))
-```
-
-![](investigations_files/figure-gfm/unnamed-chunk-15-1.png)<!-- -->
-
-``` r
-# D3TEF
-full_df_no_invalid %>% 
-  select(D3TEF, ctq_total) %>% 
-  ggplot(aes(x = ctq_total, y = D3TEF)) + 
-  geom_point() +
-  geom_smooth(aes(color = 'red'))
-```
-
-![](investigations_files/figure-gfm/unnamed-chunk-15-2.png)<!-- -->
-
-``` r
-# D3TEM
-full_df_no_invalid %>% 
-  select(D3TEM, ctq_total) %>% 
-  ggplot(aes(x = ctq_total, y = D3TEM)) + 
-  geom_point() +
-  geom_smooth(aes(color = 'red'))
-```
-
-![](investigations_files/figure-gfm/unnamed-chunk-15-3.png)<!-- -->
-
-## Adding more covariates (LMM)
-
-``` r
-# add sex, age, and race as covariates
-lmm1_pt1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
-summary(lmm1_pt1)$tTable %>% 
-  knitr::kable(caption = "Model 1 - Composite Scores ($\\Delta$)")
-```
-
-|             |      Value | Std.Error |  DF |     t-value |   p-value |
-|:------------|-----------:|----------:|----:|------------:|----------:|
-| (Intercept) |  0.0323839 | 0.0435963 | 765 |   0.7428126 | 0.4578232 |
-| ctq_total   | -0.0025559 | 0.0010286 |  96 |  -2.4848918 | 0.0146897 |
-| B3TCOMPZ3   | -0.4903434 | 0.0169799 |  96 | -28.8778094 | 0.0000000 |
-| B1PRSEX2    | -0.0021125 | 0.0282484 |  96 |  -0.0747839 | 0.9405423 |
-| B1PAGE_M2   | -0.1343204 | 0.0151749 |  96 |  -8.8514738 | 0.0000000 |
-| B1PF7A2     | -0.1388579 | 0.0407281 |  96 |  -3.4093884 | 0.0009534 |
-
-Model 1 - Composite Scores (*Δ*)
-
-``` r
-lmm2_pt1 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
-summary(lmm2_pt1)$tTable %>% 
-  knitr::kable(caption = "Model 1 - Episodic Memory ($\\Delta$)")
-```
-
-|             |      Value | Std.Error |  DF |     t-value |   p-value |
-|:------------|-----------:|----------:|----:|------------:|----------:|
-| (Intercept) | -0.0096880 | 0.0843723 | 765 |  -0.1148244 | 0.9086144 |
-| ctq_total   | -0.0062601 | 0.0020251 |  96 |  -3.0912936 | 0.0026085 |
-| B3TEMZ3     | -0.5436013 | 0.0327778 |  96 | -16.5844152 | 0.0000000 |
-| B1PRSEX2    |  0.4029617 | 0.0585654 |  96 |   6.8805371 | 0.0000000 |
-| B1PAGE_M2   | -0.1965642 | 0.0286379 |  96 |  -6.8637770 | 0.0000000 |
-| B1PF7A2     | -0.0831738 | 0.0768121 |  96 |  -1.0828216 | 0.2815999 |
-
-Model 1 - Episodic Memory (*Δ*)
-
-``` r
-lmm3_pt1 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
-summary(lmm3_pt1)$tTable %>% 
-  knitr::kable(caption = "Model 1 - Executive Function ($\\Delta$)")
-```
-
-|             |      Value | Std.Error |  DF |     t-value |   p-value |
-|:------------|-----------:|----------:|----:|------------:|----------:|
-| (Intercept) | -0.1543837 | 0.0471497 | 765 |  -3.2743329 | 0.0011068 |
-| ctq_total   | -0.0002328 | 0.0010974 |  96 |  -0.2121143 | 0.8324676 |
-| B3TEFZ3     | -0.4395234 | 0.0189900 |  96 | -23.1449443 | 0.0000000 |
-| B1PRSEX2    | -0.0772976 | 0.0301372 |  96 |  -2.5648581 | 0.0118711 |
-| B1PAGE_M2   | -0.1320880 | 0.0162211 |  96 |  -8.1429537 | 0.0000000 |
-| B1PF7A2     | -0.1368604 | 0.0434582 |  96 |  -3.1492382 | 0.0021823 |
-
-Model 1 - Executive Function (*Δ*)
-
-``` r
-# add (on top of previous ones), SES, alcohol, smoking, change in stroke, exercise (MET), sleeping disorder etc. 
-lmm1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
-summary(lmm1)$tTable %>% 
-  knitr::kable(caption = "Model 2 - Composite Scores ($\\Delta$)")
-```
-
-|                         |      Value | Std.Error |  DF |     t-value |   p-value |
-|:------------------------|-----------:|----------:|----:|------------:|----------:|
-| (Intercept)             | -0.0434274 | 0.0560991 | 765 |  -0.7741192 | 0.4390995 |
-| ctq_total               | -0.0019798 | 0.0010563 |  84 |  -1.8742613 | 0.0643707 |
-| B3TCOMPZ3               | -0.5106305 | 0.0174791 |  84 | -29.2137402 | 0.0000000 |
-| B1PRSEX2                |  0.0146839 | 0.0292471 |  84 |   0.5020631 | 0.6169367 |
-| B1PAGE_M2               | -0.1385387 | 0.0154536 |  84 |  -8.9648384 | 0.0000000 |
-| B1PF7A2                 | -0.1186062 | 0.0409183 |  84 |  -2.8986087 | 0.0047805 |
-| B1PTSEI                 |  0.0452071 | 0.0145436 |  84 |   3.1083752 | 0.0025676 |
-| B1PA39former_smoker     |  0.0059370 | 0.0332531 |  84 |   0.1785411 | 0.8587280 |
-| B1PA39current_smoker    | -0.0237652 | 0.0500212 |  84 |  -0.4751029 | 0.6359466 |
-| B4ALCOHformer_moderate  |  0.0954826 | 0.0543270 |  84 |   1.7575539 | 0.0824667 |
-| B4ALCOHformer_heavy     |  0.0276367 | 0.0605290 |  84 |   0.4565859 | 0.6491472 |
-| B4ALCOHcurrent_light    |  0.0455146 | 0.0699924 |  84 |   0.6502794 | 0.5172864 |
-| B4ALCOHcurrent_moderate |  0.1158741 | 0.0453691 |  84 |   2.5540329 | 0.0124534 |
-| B4ALCOHcurrent_heavy    |  0.0163838 | 0.0471467 |  84 |   0.3475063 | 0.7290802 |
-| D1PB19-1                | -0.0219701 | 0.0458150 |  84 |  -0.4795409 | 0.6328001 |
-| D1PB191                 |  0.0158295 | 0.0675998 |  84 |   0.2341647 | 0.8154269 |
-| B4HMETMW                |  0.0208640 | 0.0137041 |  84 |   1.5224628 | 0.1316490 |
-| B1SA11W1                | -0.0996088 | 0.0450166 |  84 |  -2.2127102 | 0.0296305 |
-
-Model 2 - Composite Scores (*Δ*)
-
-``` r
-lmm2 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
-summary(lmm2)$tTable %>% 
-  knitr::kable(caption = "Model 2 - Episodic Memory ($\\Delta$)")
-```
-
-|                         |      Value | Std.Error |  DF |     t-value |   p-value |
-|:------------------------|-----------:|----------:|----:|------------:|----------:|
-| (Intercept)             | -0.1319578 | 0.1101605 | 765 |  -1.1978691 | 0.2313390 |
-| ctq_total               | -0.0056372 | 0.0020892 |  84 |  -2.6983307 | 0.0084223 |
-| B3TEMZ3                 | -0.5514595 | 0.0329993 |  84 | -16.7112389 | 0.0000000 |
-| B1PRSEX2                |  0.4150267 | 0.0606390 |  84 |   6.8442189 | 0.0000000 |
-| B1PAGE_M2               | -0.2063046 | 0.0293060 |  84 |  -7.0396753 | 0.0000000 |
-| B1PF7A2                 | -0.0401149 | 0.0780299 |  84 |  -0.5140965 | 0.6085344 |
-| B1PTSEI                 |  0.0436374 | 0.0282501 |  84 |   1.5446816 | 0.1261825 |
-| B1PA39former_smoker     |  0.0537312 | 0.0659893 |  84 |   0.8142416 | 0.4178089 |
-| B1PA39current_smoker    | -0.1349153 | 0.0991325 |  84 |  -1.3609594 | 0.1771667 |
-| B4ALCOHformer_moderate  |  0.1251868 | 0.1076824 |  84 |   1.1625556 | 0.2483021 |
-| B4ALCOHformer_heavy     |  0.0498072 | 0.1199557 |  84 |   0.4152131 | 0.6790445 |
-| B4ALCOHcurrent_light    |  0.1987230 | 0.1388289 |  84 |   1.4314246 | 0.1560188 |
-| B4ALCOHcurrent_moderate |  0.1844225 | 0.0898981 |  84 |   2.0514614 | 0.0433374 |
-| B4ALCOHcurrent_heavy    | -0.0191641 | 0.0934183 |  84 |  -0.2051433 | 0.8379565 |
-| D1PB19-1                | -0.1111912 | 0.0907739 |  84 |  -1.2249247 | 0.2240275 |
-| D1PB191                 |  0.0052129 | 0.1341217 |  84 |   0.0388670 | 0.9690886 |
-| B4HMETMW                |  0.0538464 | 0.0271771 |  84 |   1.9813151 | 0.0508271 |
-| B1SA11W1                | -0.0094406 | 0.0892153 |  84 |  -0.1058178 | 0.9159792 |
-
-Model 2 - Episodic Memory (*Δ*)
-
-``` r
-lmm3 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
-summary(lmm3)$tTable %>% 
-  knitr::kable(caption = "Model 2 - Executive Function ($\\Delta$)")
-```
-
-|                         |      Value | Std.Error |  DF |     t-value |   p-value |
-|:------------------------|-----------:|----------:|----:|------------:|----------:|
-| (Intercept)             | -0.1931443 | 0.0603294 | 765 |  -3.2014944 | 0.0014237 |
-| ctq_total               |  0.0003353 | 0.0011310 |  84 |   0.2964795 | 0.7675957 |
-| B3TEFZ3                 | -0.4569546 | 0.0196109 |  84 | -23.3010906 | 0.0000000 |
-| B1PRSEX2                | -0.0649380 | 0.0312466 |  84 |  -2.0782437 | 0.0407391 |
-| B1PAGE_M2               | -0.1322069 | 0.0165487 |  84 |  -7.9889513 | 0.0000000 |
-| B1PF7A2                 | -0.1209603 | 0.0438272 |  84 |  -2.7599353 | 0.0070962 |
-| B1PTSEI                 |  0.0441080 | 0.0156033 |  84 |   2.8268314 | 0.0058744 |
-| B1PA39former_smoker     | -0.0200912 | 0.0357427 |  84 |  -0.5621059 | 0.5755408 |
-| B1PA39current_smoker    | -0.0425444 | 0.0537286 |  84 |  -0.7918401 | 0.4306844 |
-| B4ALCOHformer_moderate  |  0.0663582 | 0.0583057 |  84 |   1.1381086 | 0.2583108 |
-| B4ALCOHformer_heavy     |  0.0239244 | 0.0650330 |  84 |   0.3678806 | 0.7138877 |
-| B4ALCOHcurrent_light    | -0.0496072 | 0.0752125 |  84 |  -0.6595603 | 0.5113403 |
-| B4ALCOHcurrent_moderate |  0.0579850 | 0.0487246 |  84 |   1.1900572 | 0.2373765 |
-| B4ALCOHcurrent_heavy    |  0.0177271 | 0.0505900 |  84 |   0.3504073 | 0.7269102 |
-| D1PB19-1                |  0.0575710 | 0.0492036 |  84 |   1.1700568 | 0.2452872 |
-| D1PB191                 |  0.0779124 | 0.0728383 |  84 |   1.0696618 | 0.2878357 |
-| B4HMETMW                |  0.0172242 | 0.0147475 |  84 |   1.1679392 | 0.2461356 |
-| B1SA11W1                | -0.0946382 | 0.0483349 |  84 |  -1.9579688 | 0.0535532 |
-
-Model 2 - Executive Function (*Δ*)
-
-``` r
-# adding education (one example)
-lmm1_edu = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PB1 + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
-summary(lmm1_edu)$tTable %>% 
-  knitr::kable()
-```
-
-|                         |      Value | Std.Error |  DF |     t-value |   p-value |
-|:------------------------|-----------:|----------:|----:|------------:|----------:|
-| (Intercept)             | -0.2126135 | 0.0787301 | 765 |  -2.7005369 | 0.0070758 |
-| ctq_total               | -0.0018094 | 0.0010533 |  83 |  -1.7178568 | 0.0895515 |
-| B3TCOMPZ3               | -0.5245217 | 0.0179494 |  83 | -29.2222636 | 0.0000000 |
-| B1PRSEX2                |  0.0217872 | 0.0292099 |  83 |   0.7458836 | 0.4578450 |
-| B1PAGE_M2               | -0.1386999 | 0.0153966 |  83 |  -9.0084520 | 0.0000000 |
-| B1PF7A2                 | -0.1195814 | 0.0407456 |  83 |  -2.9348334 | 0.0043151 |
-| B1PB1                   |  0.0209659 | 0.0068918 |  83 |   3.0421561 | 0.0031441 |
-| B1PTSEI                 |  0.0237812 | 0.0161161 |  83 |   1.4756209 | 0.1438293 |
-| B1PA39former_smoker     |  0.0094635 | 0.0330979 |  83 |   0.2859260 | 0.7756472 |
-| B1PA39current_smoker    | -0.0071665 | 0.0500568 |  83 |  -0.1431684 | 0.8865042 |
-| B4ALCOHformer_moderate  |  0.0850278 | 0.0541733 |  83 |   1.5695532 | 0.1203238 |
-| B4ALCOHformer_heavy     |  0.0329815 | 0.0602503 |  83 |   0.5474090 | 0.5855668 |
-| B4ALCOHcurrent_light    |  0.0342367 | 0.0697395 |  83 |   0.4909230 | 0.6247764 |
-| B4ALCOHcurrent_moderate |  0.1094722 | 0.0452052 |  83 |   2.4216716 | 0.0176280 |
-| B4ALCOHcurrent_heavy    |  0.0145074 | 0.0469302 |  83 |   0.3091264 | 0.7580001 |
-| D1PB19-1                | -0.0195256 | 0.0455927 |  83 |  -0.4282605 | 0.6695708 |
-| D1PB191                 |  0.0065851 | 0.0672952 |  83 |   0.0978532 | 0.9222848 |
-| B4HMETMW                |  0.0217360 | 0.0136316 |  83 |   1.5945322 | 0.1146180 |
-| B1SA11W1                | -0.1003691 | 0.0447963 |  83 |  -2.2405668 | 0.0277256 |
-
-Check model assumptions
-
-``` r
-plot(lmm1, main = "Change in Composite Scores: resid vs. fitted")
-```
-
-![](investigations_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
-
-``` r
-plot(lmm2, main = "Change in Episodic Memory: resid vs. fitted")
-```
-
-![](investigations_files/figure-gfm/unnamed-chunk-19-2.png)<!-- -->
-
-``` r
-plot(lmm3, main = "Change in Executive Function: resid vs. fitted")
-```
-
-![](investigations_files/figure-gfm/unnamed-chunk-19-3.png)<!-- -->
-
-# Modifiers
-
--   Stratified analysis can be one way to analyze the effect
-    modification; however, as this analysis is usually done in a 2-by-2
-    table, we either need dichotomous variables (e.g. sex) or an
-    arbitrary cutoff point for continuous variables.
-
-The following part is to investigate whether adding an interaction term
-will improve the model fit. Use **likelihood-ratio test** for model
-comparison. Need to refit the model using maximum likelihood (ML).
-
-Autonomy (B1SPWBA2)
-
-``` r
-# Composite
-lmm1_1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_autonomy = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_1, lmm1_autonomy)
-```
-
-    ##               Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm1_1            1 22 872.6073 977.4381 -414.3036                        
-    ## lmm1_autonomy     2 23 873.9829 983.5788 -413.9914 1 vs 2 0.624363  0.4294
-
-``` r
-# EM
-lmm2_1 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_autonomy = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm2_1, lmm2_autonomy)
-```
-
-    ##               Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm2_1            1 22 2063.141 2167.972 -1009.570                         
-    ## lmm2_autonomy     2 23 2064.965 2174.561 -1009.482 1 vs 2 0.1756932  0.6751
-
-``` r
-# EF
-lmm3_1 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_autonomy = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm3_1, lmm3_autonomy)
-```
-
-    ##               Model df       AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm3_1            1 22  999.3977 1104.228 -477.6988                         
-    ## lmm3_autonomy     2 23 1000.7712 1110.367 -477.3856 1 vs 2 0.6264816  0.4286
-
-``` r
-#plot(lmm3_autonomy)
-```
-
-Environmental Mastery (B1SPWBE2)
-
-``` r
-# Composite
-lmm1_2 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_em = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2 + ctq_total*B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm1_2, lmm1_em)
-```
-
-    ##         Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm1_2      1 22 872.4598 977.2906 -414.2299                        
-    ## lmm1_em     2 23 872.3235 981.9193 -413.1617 1 vs 2 2.136317  0.1438
-
-``` r
-# EM
-lmm2_2 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_em = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2 + ctq_total*B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm2_2, lmm2_em)
-```
-
-    ##         Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm2_2      1 22 2063.774 2168.604 -1009.887                         
-    ## lmm2_em     2 23 2065.456 2175.052 -1009.728 1 vs 2 0.3173035  0.5732
-
-``` r
-#plot(lmm2_autonomy)
-
-# EF
-lmm3_2 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_em = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm3_2, lmm3_em)
-```
-
-    ##         Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm3_2      1 22 1000.597 1105.428 -478.2986                        
-    ## lmm3_em     2 24 1002.675 1117.036 -477.3374 1 vs 2 1.922329  0.3824
-
-Personal Growth (B1SPWBG2)
-
-``` r
-# Composite
-lmm1_3 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_pg = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2 + ctq_total*B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm1_3, lmm1_pg)
-```
-
-    ##         Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm1_3      1 22 872.7432 977.5740 -414.3716                         
-    ## lmm1_pg     2 23 874.5398 984.1357 -414.2699 1 vs 2 0.2033483   0.652
-
-``` r
-# EM
-lmm2_3 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_pg = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2 + ctq_total*B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm2_3, lmm2_pg)
-```
-
-    ##         Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm2_3      1 22 2064.237 2169.068 -1010.118                         
-    ## lmm2_pg     2 23 2066.093 2175.689 -1010.046 1 vs 2 0.1441885  0.7042
-
-``` r
-# EF
-lmm3_3 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_pg = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2 + ctq_total*B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm3_3, lmm3_pg)
-```
-
-    ##         Model df       AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm3_3      1 22  999.9347 1104.766 -477.9674                        
-    ## lmm3_pg     2 23 1000.6254 1110.221 -477.3127 1 vs 2 1.309304  0.2525
-
-Positive Relations with Others (B1SPWBR2)
-
-``` r
-# Composite
-lmm1_4 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_pr = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2 + ctq_total*B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm1_4, lmm1_pr)
-```
-
-    ##         Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm1_4      1 22 871.4490 976.2799 -413.7245                         
-    ## lmm1_pr     2 23 873.4214 983.0173 -413.7107 1 vs 2 0.0275933  0.8681
-
-``` r
-# EM
-lmm2_4 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_pr = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2 + ctq_total*B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm2_4, lmm2_pr)
-```
-
-    ##         Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm2_4      1 22 2064.356 2169.187 -1010.178                         
-    ## lmm2_pr     2 23 2066.188 2175.784 -1010.094 1 vs 2 0.1679829  0.6819
-
-``` r
-# EF
-lmm3_4 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_pr = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm3_4, lmm3_pr)
-```
-
-    ##         Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm3_4      1 22 1000.557 1105.388 -478.2787                        
-    ## lmm3_pr     2 24 1002.013 1116.374 -477.0065 1 vs 2 2.544459  0.2802
-
-Purpose in Life (B1SPWBU2)
-
-``` r
-# Composite
-lmm1_5 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_pl = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2 + ctq_total*B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm1_5, lmm1_pl)
-```
-
-    ##         Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm1_5      1 22 872.6220 977.4528 -414.3110                         
-    ## lmm1_pl     2 23 874.5048 984.1007 -414.2524 1 vs 2 0.1172279  0.7321
-
-``` r
-# EM
-lmm2_5 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_pl = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2 + ctq_total*B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm2_5, lmm2_pl)
-```
-
-    ##         Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm2_5      1 22 2063.867 2168.698 -1009.934                        
-    ## lmm2_pl     2 23 2064.430 2174.026 -1009.215 1 vs 2 1.437588  0.2305
-
-``` r
-# EF
-lmm3_5 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_pl = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2 + ctq_total*B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm3_5, lmm3_pl)
-```
-
-    ##         Model df      AIC      BIC    logLik   Test    L.Ratio p-value
-    ## lmm3_5      1 22 1000.623 1105.454 -478.3117                          
-    ## lmm3_pl     2 23 1002.603 1112.199 -478.3014 1 vs 2 0.02060604  0.8859
-
-Self-Acceptance (B1SPWBS2)
-
-``` r
-# Composite
-lmm1_6 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_sa = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2 + ctq_total*B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm1_6, lmm1_sa)
-```
-
-    ##         Model df      AIC      BIC    logLik   Test    L.Ratio p-value
-    ## lmm1_6      1 22 870.7782 975.6091 -413.3891                          
-    ## lmm1_sa     2 23 872.7447 982.3406 -413.3724 1 vs 2 0.03347297  0.8548
-
-``` r
-# EM
-lmm2_6 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_sa = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2 + ctq_total*B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm2_6, lmm2_sa)
-```
-
-    ##         Model df      AIC      BIC    logLik   Test     L.Ratio p-value
-    ## lmm2_6      1 22 2064.359 2169.189 -1010.179                           
-    ## lmm2_sa     2 23 2066.356 2175.952 -1010.178 1 vs 2 0.002690267  0.9586
-
-``` r
-# EF
-lmm3_6 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_sa = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2 + ctq_total*B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm3_6, lmm3_sa)
-```
-
-    ##         Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm3_6      1 22 1000.113 1104.944 -478.0567                        
-    ## lmm3_sa     2 23 1002.101 1111.697 -478.0507 1 vs 2 0.012018  0.9127
-
--   the results are the same using `lmer` package.
-
-### part 2: Self-administered Drugs
-
-Results being significant: Using Sedative has a moderating effect on the
-change in episodic memory (0.0198) Results being near the threshold:
-Using Painkillers upon change in episodic memory (0.0996); Using LDS
-upon change in Executive Functioning (0.06)
-
-“Sedative”(A)
-
-``` r
-# COMP
-lmm1_1_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_1_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_1_base, lmm1_1_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test    L.Ratio p-value
-    ## lmm1_1_base     1 22 869.1618 973.9926 -412.5809                          
-    ## lmm1_1_a        2 23 871.0984 980.6943 -412.5492 1 vs 2 0.06335034  0.8013
-
-``` r
-# EM
-lmm2_1_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_1_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_1_base, lmm2_1_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm2_1_base     1 22 2063.325 2168.156 -1009.663                        
-    ## lmm2_1_a        2 23 2059.895 2169.491 -1006.947 1 vs 2 5.430399  0.0198
-
-``` r
-# EF
-lmm3_1_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_1_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_1_base, lmm3_1_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm3_1_base     1 22 996.0513 1100.882 -476.0257                        
-    ## lmm3_1_a        2 23 997.0369 1106.633 -475.5185 1 vs 2 1.014426  0.3138
-
-“Tranquilizer”(B)
-
-``` r
-# COMP
-lmm1_2_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_2_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_2_base, lmm1_2_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm1_2_base     1 22 872.4624 977.2932 -414.2312                        
-    ## lmm1_2_a        2 23 873.2376 982.8335 -413.6188 1 vs 2 1.224822  0.2684
-
-``` r
-# EM
-lmm2_2_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_2_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_2_base, lmm2_2_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm2_2_base     1 22 2060.695 2165.526 -1008.347                         
-    ## lmm2_2_a        2 23 2061.796 2171.391 -1007.898 1 vs 2 0.8992667   0.343
-
-``` r
-# EF
-lmm3_2_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_2_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_2_base, lmm3_2_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm3_2_base     1 22 1000.677 1105.507 -478.3382                         
-    ## lmm3_2_a        2 23 1002.049 1111.645 -478.0247 1 vs 2 0.6270175  0.4285
-
-“Stimulant”(C)
-
-``` r
-# COMP
-lmm1_3_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_3_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_3_base, lmm1_3_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm1_3_base     1 22 872.2382 977.0690 -414.1191                         
-    ## lmm1_3_a        2 23 873.7579 983.3538 -413.8789 1 vs 2 0.4802682  0.4883
-
-``` r
-# EM
-lmm2_3_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_3_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_3_base, lmm2_3_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm2_3_base     1 22 2063.820 2168.650 -1009.910                        
-    ## lmm2_3_a        2 23 2065.703 2175.299 -1009.851 1 vs 2 0.116765  0.7326
-
-``` r
-# EF
-lmm3_3_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_3_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_3_base, lmm3_3_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm3_3_base     1 22 999.9159 1104.747 -477.9579                        
-    ## lmm3_3_a        2 23 999.7895 1109.385 -476.8947 1 vs 2 2.126399  0.1448
-
-“Painkiller” (D)
-
-``` r
-# COMP
-lmm1_4_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_4_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_4_base, lmm1_4_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm1_4_base     1 22 871.1367 975.9676 -413.5684                         
-    ## lmm1_4_a        2 23 872.4871 982.0830 -413.2435 1 vs 2 0.6496331  0.4202
-
-``` r
-# EM
-lmm2_4_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_4_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_4_base, lmm2_4_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm2_4_base     1 22 2063.525 2168.356 -1009.763                        
-    ## lmm2_4_a        2 23 2062.812 2172.408 -1008.406 1 vs 2 2.712431  0.0996
-
-``` r
-# EF
-lmm3_4_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_4_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_4_base, lmm3_4_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test     L.Ratio p-value
-    ## lmm3_4_base     1 22 1000.656 1105.487 -478.3281                           
-    ## lmm3_4_a        2 23 1002.648 1112.244 -478.3242 1 vs 2 0.007872413  0.9293
-
-“Depress Medication” (E)
-
-``` r
-# COMP
-lmm1_5_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_5_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_5_base, lmm1_5_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test     L.Ratio p-value
-    ## lmm1_5_base     1 22 865.7931 970.6239 -410.8965                           
-    ## lmm1_5_a        2 23 867.7884 977.3843 -410.8942 1 vs 2 0.004708808  0.9453
-
-``` r
-# EM
-lmm2_5_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_5_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_5_base, lmm2_5_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm2_5_base     1 22 2061.595 2166.425 -1008.797                         
-    ## lmm2_5_a        2 23 2063.337 2172.933 -1008.668 1 vs 2 0.2576297  0.6118
-
-``` r
-# EF
-lmm3_5_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_5_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_5_base, lmm3_5_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm3_5_base     1 22 993.9699 1098.801 -474.9850                         
-    ## lmm3_5_a        2 23 995.4829 1105.079 -474.7414 1 vs 2 0.4870597  0.4852
-
-“Inhalant” & “Heroin” (F/J)
-
-``` r
-# COMP
-lmm1_6_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_6_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_6_base, lmm1_6_a)
-
-# EM
-lmm2_6_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_6_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_6_base, lmm2_6_a)
-
-# EF
-lmm3_6_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_6_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_6_base, lmm3_6_a)
-```
-
-“Marijuana” (G)
-
-``` r
-# COMP
-lmm1_7_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_7_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_7_base, lmm1_7_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm1_7_base     1 22 872.7299 977.5608 -414.3650                         
-    ## lmm1_7_a        2 23 874.4190 984.0149 -414.2095 1 vs 2 0.3109475  0.5771
-
-``` r
-# EM
-lmm2_7_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_7_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_7_base, lmm2_7_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm2_7_base     1 22 2060.930 2165.761 -1008.465                         
-    ## lmm2_7_a        2 23 2062.504 2172.100 -1008.252 1 vs 2 0.4266585  0.5136
-
-``` r
-# EF
-lmm3_7_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_7_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_7_base, lmm3_7_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm3_7_base     1 22 1000.589 1105.420 -478.2944                         
-    ## lmm3_7_a        2 23 1002.021 1111.617 -478.0107 1 vs 2 0.5675265  0.4512
-
-“Cocaine” (H)
-
-``` r
-# COMP
-lmm1_8_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_8_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_8_base, lmm1_8_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm1_8_base     1 22 872.4662 977.2970 -414.2331                        
-    ## lmm1_8_a        2 23 874.1934 983.7893 -414.0967 1 vs 2 0.272739  0.6015
-
-``` r
-# EM
-lmm2_8_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_8_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_8_base, lmm2_8_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test   L.Ratio p-value
-    ## lmm2_8_base     1 22 2064.055 2168.886 -1010.028                         
-    ## lmm2_8_a        2 23 2065.724 2175.320 -1009.862 1 vs 2 0.3312035   0.565
-
-``` r
-# EF
-lmm3_8_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_8_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_8_base, lmm3_8_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm3_8_base     1 22 1000.167 1104.998 -478.0834                        
-    ## lmm3_8_a        2 23 1000.892 1110.488 -477.4462 1 vs 2 1.274444  0.2589
-
-“LDS” (I)
-
-``` r
-# COMP
-lmm1_9_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_9_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_9_base, lmm1_9_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm1_9_base     1 22 868.8418 973.6727 -412.4209                        
-    ## lmm1_9_a        2 23 869.3964 978.9923 -411.6982 1 vs 2 1.445407  0.2293
-
-``` r
-# EM
-lmm2_9_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_9_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_9_base, lmm2_9_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test    L.Ratio p-value
-    ## lmm2_9_base     1 22 2061.986 2166.817 -1008.993                          
-    ## lmm2_9_a        2 23 2063.954 2173.550 -1008.977 1 vs 2 0.03235308  0.8573
-
-``` r
-# EF
-lmm3_9_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_9_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_9_base, lmm3_9_a)
-```
-
-    ##             Model df      AIC      BIC    logLik   Test  L.Ratio p-value
-    ## lmm3_9_base     1 22 994.4434 1099.274 -475.2217                        
-    ## lmm3_9_a        2 23 992.9290 1102.525 -473.4645 1 vs 2 3.514465  0.0608
-
 ## Multilevel Models
 
 *What is the multilevel?*
@@ -1226,7 +421,8 @@ called it multilevel modeling. We are, indeed, predicting both level and
 intercept, but the model itself will yield fitted results of intercept
 and slope. We are still predicting one independent variable: change in
 composite score, episodic memory, or executive functioning. The slopes
-and intercepts are by-products of the modeling.
+and intercepts are by-products of the modeling. More specifically, the
+models are fitted using maximum-likelihood.
 
 *Thinking about the change per month/years*
 
@@ -1235,6 +431,7 @@ elapsed time between M2 and M3 for the population. Thus, maybe we would
 like to move from the “change in magnitude” to “rate of change per year
 or per month”. In this case, I don’t think we still need to index the
 baseline. Or, I could include the time between M2 and M3 as a covariate.
+(10.10 updates: go for the second option)
 
 *What are the variables included in the model?*
 
@@ -1261,7 +458,7 @@ Independent variable:
 -   B4HMETMW: exercise minutes per week
 -   B1SA11W: chronic sleep problem in the past 12 months
 
-### random intercept model (the very basic)
+### random intercept model - CTQ Total Scores (the very basic)
 
 Change in Composite Scores
 
@@ -1584,25 +781,25 @@ summary(lmm_model2_ef)
 
 Take the last table for example (dependent variable: change in EF):
 
-                         Estimate   Std. Error       df   t value Pr(>|t|)  
-                         
-
-B1PAGE_M2 -1.365e-01 1.619e-02 7.742e+02 -8.427 \< 2e-16 \*** B1PTSEI
-4.136e-02 1.525e-02 8.568e+02 2.712 0.006821 **
+|           |   Estimate | Std. Error |        df | t value |    Pr(>\|*t*\|) |
+|----------:|-----------:|-----------:|----------:|--------:|----------------:|
+| B1PAGE_M2 | -1.365e-01 |  1.619e-02 | 7.742e+02 |  -8.427 | \< 2e-16 \*\*\* |
+|   B1PTSEI |  4.136e-02 |  1.525e-02 | 8.568e+02 |   2.712 |   0.006821 \*\* |
 
 My interpretation is: age significantly predicts the change in executive
-functioning, i.e. on average, 1 year increase of age will result in
-0.137 more decline in Executive Functioning scores. Similarly, SES
-significantly predicts the change in executive functioning, i.e. on
-average, 1 unit increase in SES will result in 0.0414 more increase in
-the Executive Functioning scores.
+functioning, i.e. on average (and control all other covariates), 1 year
+increase of age will result in 0.137 more decline in Executive
+Functioning scores. Similarly, SES significantly predicts the change in
+executive functioning, i.e. on average, 1 unit change in SES will result
+in 0.0414 change in the positive direction in the Executive Functioning
+scores.
 
 For those insignificant results, the interpretation will thus be: the
 <independent variable> did not significantly predict the
 <dependent variable>. For example, the ctq_total did not significantly
 predict the change in executive functioning.
 
-*Since we are also concerning the threat and deprivation*
+### Threat and deprivation
 
 **threat**
 
@@ -1768,7 +965,9 @@ summary(lmm_model2_ef_thr)
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-**deprivation** Change in Composite Scores
+**deprivation**
+
+Change in Composite Scores
 
 ``` r
 lmm_model2_cs_dep <- lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
@@ -1929,3 +1128,953 @@ summary(lmm_model2_ef_dep)
     ## yr_lapsed               -8.754e-02  1.838e-02  8.666e+02  -4.762 2.24e-06 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Check model assumptions
+
+``` r
+plot(lmm_model2_cs, main = "Change in Composite Scores: resid vs. fitted")
+```
+
+![](investigations_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->
+
+``` r
+plot(lmm_model2_em, main = "Change in Episodic Memory: resid vs. fitted")
+```
+
+![](investigations_files/figure-gfm/unnamed-chunk-35-2.png)<!-- -->
+
+``` r
+plot(lmm_model2_ef, main = "Change in Executive Function: resid vs. fitted")
+```
+
+![](investigations_files/figure-gfm/unnamed-chunk-35-3.png)<!-- -->
+
+# Modifiers: eudaimonia effect
+
+-   Stratified analysis can be one way to analyze the effect
+    modification; however, as this analysis is usually done in a 2-by-2
+    table, we either need dichotomous variables (e.g. sex) or an
+    arbitrary cutoff point for continuous variables. In later analysis,
+    we included the modifiers as the interaction term.
+
+The following part is to investigate whether adding an interaction term
+will improve the model fit. Use **likelihood-ratio test** for model
+comparison. Also, since we are comparing nested models (meaning one
+model is nested in another), and we are generally interested in the mean
+coefficients *β*, we should use maximum likelihood (ML)
+
+**What are the interaction terms?**
+
+We are interested in investigating how these eudaimonia factors have
+interacted with the childhood trauma. Thus, the interaction term
+included in the larger model should be
+**<trauma total score>×<eudaimonia terms>**. I also refit the
+nested/smaller model by adding the eudaimonia terms as the covariate.
+Similarly, the same term was also added to the larger model. Thus, when
+we comparing models, we are truly comparing the effect modification of
+eudaimonia factors on childhood trauma rather than introducing a new
+term to the model that has never seen beforehand.
+
+## Results
+
+Unfortunately, none of the interaction term between
+ctq_total/thr_total/dep_total and eudaimonia terms has been found to
+statistically significantly increase the power of the model.
+
+## CTQ total
+
+Autonomy (B1SPWBA2)
+
+``` r
+# Composite
+lmm1_1 = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_autonomy = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + ctq_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_1, lmm1_autonomy)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_1: D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + (1 | M2FAMNUM)
+    ## lmm1_autonomy: D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + ctq_total * B1SPWBA2 + (1 | M2FAMNUM)
+    ##               npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm1_1          22 873.42 978.25 -414.71   829.42                     
+    ## lmm1_autonomy   23 874.94 984.54 -414.47   828.94 0.4761  1     0.4902
+
+``` r
+# EM
+lmm2_1 = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_autonomy = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + ctq_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_1, lmm2_autonomy)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_1: D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + (1 | M2FAMNUM)
+    ## lmm2_autonomy: D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + ctq_total * B1SPWBA2 + (1 | M2FAMNUM)
+    ##               npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm2_1          22 2065.1 2169.9 -1010.5   2021.1                     
+    ## lmm2_autonomy   23 2067.0 2176.6 -1010.5   2021.0 0.1295  1      0.719
+
+``` r
+# EF
+lmm3_1 = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed+ B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_autonomy = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + ctq_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_1, lmm3_autonomy)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_1: D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + (1 | M2FAMNUM)
+    ## lmm3_autonomy: D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + ctq_total * B1SPWBA2 + (1 | M2FAMNUM)
+    ##               npar    AIC    BIC  logLik deviance Chisq Df Pr(>Chisq)
+    ## lmm3_1          22 981.44 1086.3 -468.72   937.44                    
+    ## lmm3_autonomy   23 982.88 1092.5 -468.44   936.88 0.562  1     0.4535
+
+**Interpretation**
+
+Suppose we have the following model comparison:
+
+|               | npar |    AIC |    BIC |  logLik | deviance |  Chisq |  Df | Pr(>Chisq) |
+|--------------:|-----:|-------:|-------:|--------:|---------:|-------:|----:|-----------:|
+|        lmm1_1 |   22 | 873.42 | 978.25 | -414.71 |   829.42 |        |     |            |
+| lmm1_autonomy |   23 | 874.94 | 984.54 | -414.47 |   828.94 | 0.4761 |   1 |     0.4902 |
+
+The first 5 columns are statistics regarding each model while the last 3
+columns are related to model comparisons. “Chisq” computes the
+*χ*<sup>2</sup> statistics for model comparisons. “Df” means the
+different in degrees of freedom between the model we would like to
+compare. Since we only added one interaction term, the *Δ**D**f* is 1.
+Lastly, “Pr(>Chisq)” gave us the p-value of whether the interaction term
+added to the model has improved the model prediction significantly. In
+the example shown above, 0.4902 \>  \> 0.05, we failed to reject the
+null and have to conclude that the interaction term isn’t significant.
+
+Environmental Mastery (B1SPWBE2)
+
+``` r
+# Composite
+lmm1_2 = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_mastery = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + ctq_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_2, lmm1_mastery)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_2: D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + (1 | M2FAMNUM)
+    ## lmm1_mastery: D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + ctq_total * B1SPWBE2 + (1 | M2FAMNUM)
+    ##              npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm1_2         22 873.19 978.02 -414.60   829.19                     
+    ## lmm1_mastery   23 873.70 983.29 -413.85   827.70 1.4962  1     0.2213
+
+``` r
+# EM
+lmm2_2 = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_mastery = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + ctq_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_2, lmm2_mastery)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_2: D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + (1 | M2FAMNUM)
+    ## lmm2_mastery: D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + ctq_total * B1SPWBE2 + (1 | M2FAMNUM)
+    ##              npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm2_2         22 2065.7 2170.6 -1010.9   2021.7                     
+    ## lmm2_mastery   23 2067.5 2177.1 -1010.8   2021.5 0.2057  1     0.6501
+
+``` r
+# EF
+lmm3_2 = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_mastery = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + ctq_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_2, lmm3_mastery)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_2: D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + (1 | M2FAMNUM)
+    ## lmm3_mastery: D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + ctq_total * B1SPWBE2 + (1 | M2FAMNUM)
+    ##              npar    AIC    BIC  logLik deviance Chisq Df Pr(>Chisq)
+    ## lmm3_2         22 982.54 1087.4 -469.27   938.54                    
+    ## lmm3_mastery   23 983.43 1093.0 -468.72   937.43 1.108  1     0.2925
+
+Personal Growth (B1SPWBG2)
+
+``` r
+# Composite
+lmm1_3 = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pg= lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + ctq_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_3, lmm1_pg)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_3: D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + (1 | M2FAMNUM)
+    ## lmm1_pg: D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + ctq_total * B1SPWBG2 + (1 | M2FAMNUM)
+    ##         npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm1_3    22 873.55 978.39 -414.78   829.55                     
+    ## lmm1_pg   23 875.25 984.85 -414.63   829.25 0.2995  1     0.5842
+
+``` r
+# EM
+lmm2_3 = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pg = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + ctq_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_3, lmm2_pg)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_3: D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + (1 | M2FAMNUM)
+    ## lmm2_pg: D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + ctq_total * B1SPWBG2 + (1 | M2FAMNUM)
+    ##         npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm2_3    22 2066.2 2171.0 -1011.1   2022.2                     
+    ## lmm2_pg   23 2068.0 2177.6 -1011.0   2022.0 0.1629  1     0.6865
+
+``` r
+# EF
+lmm3_3 = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pg = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + ctq_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_3, lmm3_pg)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_3: D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + (1 | M2FAMNUM)
+    ## lmm3_pg: D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + ctq_total * B1SPWBG2 + (1 | M2FAMNUM)
+    ##         npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm3_3    22 981.85 1086.7 -468.93   937.85                     
+    ## lmm3_pg   23 982.29 1091.9 -468.14   936.29 1.5659  1     0.2108
+
+Positive Relations with Others (B1SPWBR2)
+
+``` r
+# Composite
+lmm1_4 = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pr = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + ctq_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_4, lmm1_pr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_4: D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + (1 | M2FAMNUM)
+    ## lmm1_pr: D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + ctq_total * B1SPWBR2 + (1 | M2FAMNUM)
+    ##         npar    AIC    BIC logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm1_4    22 872.40 977.23 -414.2   828.40                     
+    ## lmm1_pr   23 874.39 983.99 -414.2   828.39 0.0051  1     0.9432
+
+``` r
+# EM
+lmm2_4 = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pr = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + ctq_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_4, lmm2_pr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_4: D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + (1 | M2FAMNUM)
+    ## lmm2_pr: D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + ctq_total * B1SPWBR2 + (1 | M2FAMNUM)
+    ##         npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm2_4    22 2066.5 2171.3 -1011.2   2022.5                     
+    ## lmm2_pr   23 2068.3 2177.9 -1011.2   2022.3 0.1353  1      0.713
+
+``` r
+# EF
+lmm3_4 = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pr = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + ctq_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_4, lmm3_pr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_4: D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + (1 | M2FAMNUM)
+    ## lmm3_pr: D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + ctq_total * B1SPWBR2 + (1 | M2FAMNUM)
+    ##         npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm3_4    22 982.64 1087.5 -469.32   938.64                     
+    ## lmm3_pr   23 984.11 1093.7 -469.05   938.11 0.5296  1     0.4668
+
+Purpose in Life (B1SPWBU2)
+
+``` r
+# Composite
+lmm1_5 = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pl = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + ctq_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_5, lmm1_pl)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_5: D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + (1 | M2FAMNUM)
+    ## lmm1_pl: D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + ctq_total * B1SPWBU2 + (1 | M2FAMNUM)
+    ##         npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm1_5    22 873.41 978.24 -414.70   829.41                     
+    ## lmm1_pl   23 875.24 984.84 -414.62   829.24 0.1643  1     0.6852
+
+``` r
+# EM
+lmm2_5 = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pl = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + ctq_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_5, lmm2_pl)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_5: D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + (1 | M2FAMNUM)
+    ## lmm2_pl: D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + ctq_total * B1SPWBU2 + (1 | M2FAMNUM)
+    ##         npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm2_5    22 2066.0 2170.8 -1011.0   2022.0                     
+    ## lmm2_pl   23 2066.5 2176.1 -1010.2   2020.5 1.5099  1     0.2192
+
+``` r
+# EF
+lmm3_5 = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pl = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + ctq_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_5, lmm3_pl)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_5: D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + (1 | M2FAMNUM)
+    ## lmm3_pl: D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + ctq_total * B1SPWBU2 + (1 | M2FAMNUM)
+    ##         npar   AIC    BIC logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm3_5    22 982.6 1087.4 -469.3    938.6                     
+    ## lmm3_pl   23 984.6 1094.2 -469.3    938.6 0.0048  1     0.9447
+
+Self-Acceptance (B1SPWBS2)
+
+``` r
+# Composite
+lmm1_6 = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_sa = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + ctq_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_6, lmm1_sa)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_6: D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + (1 | M2FAMNUM)
+    ## lmm1_sa: D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + ctq_total * B1SPWBS2 + (1 | M2FAMNUM)
+    ##         npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm1_6    22 872.11 976.94 -414.05   828.11                     
+    ## lmm1_sa   23 873.90 983.50 -413.95   827.90 0.2082  1     0.6482
+
+``` r
+# EM
+lmm2_6 = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_sa = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + ctq_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_6, lmm2_sa)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_6: D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + (1 | M2FAMNUM)
+    ## lmm2_sa: D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + ctq_total * B1SPWBS2 + (1 | M2FAMNUM)
+    ##         npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm2_6    22 2066.4 2171.3 -1011.2   2022.5                     
+    ## lmm2_sa   23 2068.4 2178.0 -1011.2   2022.4 0.0378  1     0.8457
+
+``` r
+# EF
+lmm3_6 = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_sa = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + ctq_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_6, lmm3_sa)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_6: D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + (1 | M2FAMNUM)
+    ## lmm3_sa: D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + ctq_total * B1SPWBS2 + (1 | M2FAMNUM)
+    ##         npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm3_6    22 982.38 1087.2 -469.19   938.38                     
+    ## lmm3_sa   23 984.36 1094.0 -469.18   938.36 0.0221  1     0.8819
+
+## Threat
+
+Autonomy (B1SPWBA2)
+
+``` r
+# Composite
+lmm1_1_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_autonomy_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + thr_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_1_tr, lmm1_autonomy_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_1_tr: D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + (1 | M2FAMNUM)
+    ## lmm1_autonomy_tr: D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + thr_total * B1SPWBA2 + (1 | M2FAMNUM)
+    ##                  npar    AIC    BIC  logLik deviance Chisq Df Pr(>Chisq)
+    ## lmm1_1_tr          22 874.46 979.29 -415.23   830.46                    
+    ## lmm1_autonomy_tr   23 876.40 986.00 -415.20   830.40 0.053  1      0.818
+
+``` r
+# EM
+lmm2_1_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_autonomy_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2+  thr_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_1_tr, lmm2_autonomy_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_1_tr: D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + (1 | M2FAMNUM)
+    ## lmm2_autonomy_tr: D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + thr_total * B1SPWBA2 + (1 | M2FAMNUM)
+    ##                  npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm2_1_tr          22 2066.6 2171.4 -1011.3   2022.5                     
+    ## lmm2_autonomy_tr   23 2068.4 2178.0 -1011.2   2022.5 0.1016  1     0.7499
+
+``` r
+# EF
+lmm3_1_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed+ B1SPWBA2+ (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_autonomy_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + thr_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_1_tr, lmm3_autonomy_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_1_tr: D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + (1 | M2FAMNUM)
+    ## lmm3_autonomy_tr: D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + thr_total * B1SPWBA2 + (1 | M2FAMNUM)
+    ##                  npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm3_1_tr          22 981.41 1086.2 -468.70   937.41                     
+    ## lmm3_autonomy_tr   23 983.22 1092.8 -468.61   937.22 0.1923  1      0.661
+
+Environmental Mastery (B1SPWBE2)
+
+``` r
+# Composite
+lmm1_2_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_mastery_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + thr_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_2_tr, lmm1_mastery_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_2_tr: D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + (1 | M2FAMNUM)
+    ## lmm1_mastery_tr: D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + thr_total * B1SPWBE2 + (1 | M2FAMNUM)
+    ##                 npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm1_2_tr         22 874.10 978.93 -415.05   830.10                     
+    ## lmm1_mastery_tr   23 874.97 984.56 -414.48   828.97 1.1335  1      0.287
+
+``` r
+# EM
+lmm2_2_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_mastery_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + thr_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_2_tr, lmm2_mastery_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_2_tr: D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + (1 | M2FAMNUM)
+    ## lmm2_mastery_tr: D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + thr_total * B1SPWBE2 + (1 | M2FAMNUM)
+    ##                 npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm2_2_tr         22 2067.1 2171.9 -1011.5   2023.1                     
+    ## lmm2_mastery_tr   23 2068.9 2178.5 -1011.4   2022.9 0.2248  1     0.6354
+
+``` r
+# EF
+lmm3_2_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_mastery_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + thr_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_2_tr, lmm3_mastery_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_2_tr: D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + (1 | M2FAMNUM)
+    ## lmm3_mastery_tr: D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + thr_total * B1SPWBE2 + (1 | M2FAMNUM)
+    ##                 npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm3_2_tr         22 982.49 1087.3 -469.24   938.49                     
+    ## lmm3_mastery_tr   23 983.67 1093.3 -468.84   937.67 0.8103  1      0.368
+
+Personal Growth (B1SPWBG2)
+
+``` r
+# Composite
+lmm1_3_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pg_tr= lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + thr_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_3_tr, lmm1_pg_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_3_tr: D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + (1 | M2FAMNUM)
+    ## lmm1_pg_tr: D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + thr_total * B1SPWBG2 + (1 | M2FAMNUM)
+    ##            npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm1_3_tr    22 874.61 979.44 -415.30   830.61                     
+    ## lmm1_pg_tr   23 876.26 985.85 -415.13   830.26 0.3542  1     0.5518
+
+``` r
+# EM
+lmm2_3_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pg_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + thr_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_3_tr, lmm2_pg_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_3_tr: D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + (1 | M2FAMNUM)
+    ## lmm2_pg_tr: D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + thr_total * B1SPWBG2 + (1 | M2FAMNUM)
+    ##            npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm2_3_tr    22 2067.7 2172.6 -1011.9   2023.7                     
+    ## lmm2_pg_tr   23 2069.6 2179.2 -1011.8   2023.6 0.1681  1     0.6818
+
+``` r
+# EF
+lmm3_3_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pg_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + thr_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_3_tr, lmm3_pg_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_3_tr: D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + (1 | M2FAMNUM)
+    ## lmm3_pg_tr: D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + thr_total * B1SPWBG2 + (1 | M2FAMNUM)
+    ##            npar    AIC    BIC  logLik deviance Chisq Df Pr(>Chisq)
+    ## lmm3_3_tr    22 981.82 1086.7 -468.91   937.82                    
+    ## lmm3_pg_tr   23 982.29 1091.9 -468.15   936.29 1.525  1     0.2169
+
+Positive Relations with Others (B1SPWBR2)
+
+``` r
+# Composite
+lmm1_4_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pr_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + thr_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_4_tr, lmm1_pr_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_4_tr: D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + (1 | M2FAMNUM)
+    ## lmm1_pr_tr: D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + thr_total * B1SPWBR2 + (1 | M2FAMNUM)
+    ##            npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm1_4_tr    22 873.90 978.73 -414.95   829.90                     
+    ## lmm1_pr_tr   23 875.83 985.43 -414.91   829.83 0.0696  1     0.7919
+
+``` r
+# EM
+lmm2_4_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pr_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + thr_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_4_tr, lmm2_pr_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_4_tr: D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + (1 | M2FAMNUM)
+    ## lmm2_pr_tr: D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + thr_total * B1SPWBR2 + (1 | M2FAMNUM)
+    ##            npar    AIC    BIC  logLik deviance Chisq Df Pr(>Chisq)
+    ## lmm2_4_tr    22 2068.1 2172.9 -1012.1   2024.1                    
+    ## lmm2_pr_tr   23 2070.1 2179.7 -1012.0   2024.1 0.005  1     0.9435
+
+``` r
+# EF
+lmm3_4_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pr_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + thr_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_4_tr, lmm3_pr_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_4_tr: D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + (1 | M2FAMNUM)
+    ## lmm3_pr_tr: D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + thr_total * B1SPWBR2 + (1 | M2FAMNUM)
+    ##            npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm3_4_tr    22 982.58 1087.4 -469.29   938.58                     
+    ## lmm3_pr_tr   23 983.84 1093.4 -468.92   937.84 0.7373  1     0.3905
+
+Purpose in Life (B1SPWBU2)
+
+``` r
+# Composite
+lmm1_5_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pl_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + thr_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_5_tr, lmm1_pl_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_5_tr: D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + (1 | M2FAMNUM)
+    ## lmm1_pl_tr: D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + thr_total * B1SPWBU2 + (1 | M2FAMNUM)
+    ##            npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm1_5_tr    22 874.62 979.45 -415.31   830.62                     
+    ## lmm1_pl_tr   23 876.49 986.09 -415.25   830.49 0.1283  1     0.7202
+
+``` r
+# EM
+lmm2_5_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pl_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + thr_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_5_tr, lmm2_pl_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_5_tr: D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + (1 | M2FAMNUM)
+    ## lmm2_pl_tr: D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + thr_total * B1SPWBU2 + (1 | M2FAMNUM)
+    ##            npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm2_5_tr    22 2067.5 2172.3 -1011.7   2023.5                     
+    ## lmm2_pl_tr   23 2068.2 2177.8 -1011.1   2022.2 1.2348  1     0.2665
+
+``` r
+# EF
+lmm3_5_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pl_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + thr_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_5_tr, lmm3_pl_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_5_tr: D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + (1 | M2FAMNUM)
+    ## lmm3_pl_tr: D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + thr_total * B1SPWBU2 + (1 | M2FAMNUM)
+    ##            npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm3_5_tr    22 982.54 1087.4 -469.27   938.54                     
+    ## lmm3_pl_tr   23 984.53 1094.1 -469.27   938.53 0.0103  1     0.9193
+
+Self-Acceptance (B1SPWBS2)
+
+``` r
+# Composite
+lmm1_6_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_sa_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + thr_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_6_tr, lmm1_sa_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_6_tr: D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + (1 | M2FAMNUM)
+    ## lmm1_sa_tr: D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + thr_total * B1SPWBS2 + (1 | M2FAMNUM)
+    ##            npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm1_6_tr    22 873.59 978.42 -414.79   829.59                     
+    ## lmm1_sa_tr   23 875.14 984.74 -414.57   829.14 0.4422  1     0.5061
+
+``` r
+# EM
+lmm2_6_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_sa_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + thr_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_6_tr, lmm2_sa_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_6_tr: D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + (1 | M2FAMNUM)
+    ## lmm2_sa_tr: D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + thr_total * B1SPWBS2 + (1 | M2FAMNUM)
+    ##            npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm2_6_tr    22 2068.1 2172.9 -1012.0   2024.1                     
+    ## lmm2_sa_tr   23 2069.8 2179.4 -1011.9   2023.8 0.2382  1     0.6255
+
+``` r
+# EF
+lmm3_6_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_sa_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + thr_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_6_tr, lmm3_sa_tr)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_6_tr: D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + (1 | M2FAMNUM)
+    ## lmm3_sa_tr: D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + thr_total * B1SPWBS2 + (1 | M2FAMNUM)
+    ##            npar    AIC    BIC  logLik deviance Chisq Df Pr(>Chisq)
+    ## lmm3_6_tr    22 982.33 1087.2 -469.17   938.33                    
+    ## lmm3_sa_tr   23 984.30 1093.9 -469.15   938.30 0.036  1     0.8495
+
+## Deprivation
+
+Autonomy (B1SPWBA2)
+
+``` r
+# Composite
+lmm1_1_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_autonomy_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + dep_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_1_dep, lmm1_autonomy_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_1_dep: D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + (1 | M2FAMNUM)
+    ## lmm1_autonomy_dep: D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + dep_total * B1SPWBA2 + (1 | M2FAMNUM)
+    ##                   npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm1_1_dep          22 873.20 978.03 -414.60   829.20                     
+    ## lmm1_autonomy_dep   23 873.62 983.22 -413.81   827.62 1.5803  1     0.2087
+
+``` r
+# EM
+lmm2_1_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBA2+ (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_autonomy_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + dep_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_1_dep, lmm2_autonomy_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_1_dep: D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + (1 | M2FAMNUM)
+    ## lmm2_autonomy_dep: D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + dep_total * B1SPWBA2 + (1 | M2FAMNUM)
+    ##                   npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm2_1_dep          22 2065.7 2170.6 -1010.9   2021.7                     
+    ## lmm2_autonomy_dep   23 2067.6 2177.2 -1010.8   2021.6 0.1367  1     0.7116
+
+``` r
+# EF
+lmm3_1_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_autonomy_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + dep_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_1_dep, lmm3_autonomy_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_1_dep: D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + (1 | M2FAMNUM)
+    ## lmm3_autonomy_dep: D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + dep_total * B1SPWBA2 + (1 | M2FAMNUM)
+    ##                   npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm3_1_dep          22 981.55 1086.4 -468.78   937.55                     
+    ## lmm3_autonomy_dep   23 982.41 1092.0 -468.20   936.41 1.1436  1     0.2849
+
+Environmental Mastery (B1SPWBE2)
+
+``` r
+# Composite
+lmm1_2_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_mastery_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + dep_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_2_dep, lmm1_mastery_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_2_dep: D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + (1 | M2FAMNUM)
+    ## lmm1_mastery_dep: D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + dep_total * B1SPWBE2 + (1 | M2FAMNUM)
+    ##                  npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm1_2_dep         22 872.98 977.81 -414.49   828.98                     
+    ## lmm1_mastery_dep   23 873.29 982.89 -413.65   827.29 1.6832  1     0.1945
+
+``` r
+# EM
+lmm2_2_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_mastery_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + dep_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_2_dep, lmm2_mastery_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_2_dep: D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + (1 | M2FAMNUM)
+    ## lmm2_mastery_dep: D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + dep_total * B1SPWBE2 + (1 | M2FAMNUM)
+    ##                  npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm2_2_dep         22 2066.2 2171.1 -1011.1   2022.2                     
+    ## lmm2_mastery_dep   23 2068.1 2177.7 -1011.0   2022.1 0.1453  1      0.703
+
+``` r
+# EF
+lmm3_2_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_mastery_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + dep_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_2_dep, lmm3_mastery_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_2_dep: D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + (1 | M2FAMNUM)
+    ## lmm3_mastery_dep: D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + dep_total * B1SPWBE2 + (1 | M2FAMNUM)
+    ##                  npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm3_2_dep         22 982.66 1087.5 -469.33   938.66                     
+    ## lmm3_mastery_dep   23 983.42 1093.0 -468.71   937.42 1.2492  1     0.2637
+
+Personal Growth (B1SPWBG2)
+
+``` r
+# Composite
+lmm1_3_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pg_dep= lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + dep_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_3_dep, lmm1_pg_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_3_dep: D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + (1 | M2FAMNUM)
+    ## lmm1_pg_dep: D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + dep_total * B1SPWBG2 + (1 | M2FAMNUM)
+    ##             npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm1_3_dep    22 873.31 978.14 -414.65   829.31                     
+    ## lmm1_pg_dep   23 875.20 984.80 -414.60   829.20 0.1063  1     0.7444
+
+``` r
+# EM
+lmm2_3_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pg_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + dep_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_3_dep, lmm2_pg_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_3_dep: D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + (1 | M2FAMNUM)
+    ## lmm2_pg_dep: D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + dep_total * B1SPWBG2 + (1 | M2FAMNUM)
+    ##             npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm2_3_dep    22 2066.7 2171.5 -1011.4   2022.7                     
+    ## lmm2_pg_dep   23 2068.6 2178.2 -1011.3   2022.6 0.0695  1     0.7921
+
+``` r
+# EF
+lmm3_3_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pg_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + dep_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_3_dep, lmm3_pg_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_3_dep: D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + (1 | M2FAMNUM)
+    ## lmm3_pg_dep: D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + dep_total * B1SPWBG2 + (1 | M2FAMNUM)
+    ##             npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm3_3_dep    22 981.98 1086.8 -468.99   937.98                     
+    ## lmm3_pg_dep   23 982.88 1092.5 -468.44   936.88 1.1033  1     0.2936
+
+Positive Relations with Others (B1SPWBR2)
+
+``` r
+# Composite
+lmm1_4_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pr_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + dep_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_4_dep, lmm1_pr_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_4_dep: D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + (1 | M2FAMNUM)
+    ## lmm1_pr_dep: D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + dep_total * B1SPWBR2 + (1 | M2FAMNUM)
+    ##             npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm1_4_dep    22 871.84 976.67 -413.92   827.84                     
+    ## lmm1_pr_dep   23 873.47 983.07 -413.74   827.47 0.3681  1      0.544
+
+``` r
+# EM
+lmm2_4_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pr_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + dep_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_4_dep, lmm2_pr_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_4_dep: D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + (1 | M2FAMNUM)
+    ## lmm2_pr_dep: D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + dep_total * B1SPWBR2 + (1 | M2FAMNUM)
+    ##             npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm2_4_dep    22 2066.9 2171.7 -1011.5   2022.9                     
+    ## lmm2_pr_dep   23 2067.9 2177.5 -1011.0   2022.0 0.9588  1     0.3275
+
+``` r
+# EF
+lmm3_4_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pr_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + dep_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_4_dep, lmm3_pr_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_4_dep: D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + (1 | M2FAMNUM)
+    ## lmm3_pr_dep: D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + dep_total * B1SPWBR2 + (1 | M2FAMNUM)
+    ##             npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm3_4_dep    22 982.71 1087.5 -469.35   938.71                     
+    ## lmm3_pr_dep   23 984.58 1094.2 -469.29   938.58 0.1227  1     0.7262
+
+Purpose in Life (B1SPWBU2)
+
+``` r
+# Composite
+lmm1_5_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pl_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + dep_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_5_dep, lmm1_pl_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_5_dep: D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + (1 | M2FAMNUM)
+    ## lmm1_pl_dep: D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + dep_total * B1SPWBU2 + (1 | M2FAMNUM)
+    ##             npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm1_5_dep    22 873.10 977.93 -414.55   829.10                     
+    ## lmm1_pl_dep   23 875.02 984.61 -414.51   829.02 0.0867  1     0.7684
+
+``` r
+# EM
+lmm2_5_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pl_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + dep_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_5_dep, lmm2_pl_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_5_dep: D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + (1 | M2FAMNUM)
+    ## lmm2_pl_dep: D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + dep_total * B1SPWBU2 + (1 | M2FAMNUM)
+    ##             npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm2_5_dep    22 2066.5 2171.3 -1011.2   2022.5                     
+    ## lmm2_pl_dep   23 2067.4 2177.0 -1010.7   2021.4 1.0945  1     0.2955
+
+``` r
+# EF
+lmm3_5_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pl_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + dep_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_5_dep, lmm3_pl_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_5_dep: D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + (1 | M2FAMNUM)
+    ## lmm3_pl_dep: D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + dep_total * B1SPWBU2 + (1 | M2FAMNUM)
+    ##             npar    AIC    BIC  logLik deviance Chisq Df Pr(>Chisq)
+    ## lmm3_5_dep    22 982.66 1087.5 -469.33   938.66                    
+    ## lmm3_pl_dep   23 984.66 1094.3 -469.33   938.66 3e-04  1     0.9865
+
+Self-Acceptance (B1SPWBS2)
+
+``` r
+# Composite
+lmm1_6_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_sa_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + dep_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_6_dep, lmm1_sa_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm1_6_dep: D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + (1 | M2FAMNUM)
+    ## lmm1_sa_dep: D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + dep_total * B1SPWBS2 + (1 | M2FAMNUM)
+    ##             npar    AIC    BIC  logLik deviance Chisq Df Pr(>Chisq)
+    ## lmm1_6_dep    22 871.77 976.60 -413.89   827.77                    
+    ## lmm1_sa_dep   23 873.77 983.37 -413.89   827.77     0  1     0.9958
+
+``` r
+# EM
+lmm2_6_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_sa_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + dep_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_6_dep, lmm2_sa_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm2_6_dep: D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + (1 | M2FAMNUM)
+    ## lmm2_sa_dep: D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + dep_total * B1SPWBS2 + (1 | M2FAMNUM)
+    ##             npar    AIC    BIC  logLik deviance  Chisq Df Pr(>Chisq)
+    ## lmm2_6_dep    22 2066.9 2171.7 -1011.5   2022.9                     
+    ## lmm2_sa_dep   23 2068.8 2178.4 -1011.4   2022.8 0.1016  1       0.75
+
+``` r
+# EF
+lmm3_6_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_sa_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + dep_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_6_dep, lmm3_sa_dep)
+```
+
+    ## Data: full_df_no_invalid
+    ## Models:
+    ## lmm3_6_dep: D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + (1 | M2FAMNUM)
+    ## lmm3_sa_dep: D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + dep_total * B1SPWBS2 + (1 | M2FAMNUM)
+    ##             npar    AIC    BIC  logLik deviance Chisq Df Pr(>Chisq)
+    ## lmm3_6_dep    22 982.42 1087.2 -469.21   938.42                    
+    ## lmm3_sa_dep   23 984.42 1094.0 -469.21   938.42 8e-04  1     0.9777

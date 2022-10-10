@@ -378,388 +378,6 @@ first, fit the model with a list of covariates
 * exercise and chronic sleep problem
 
 
-## Base Model
-```{r}
-lmm_base_1 = lme(D3TCOMP~ ctq_total + B3TCOMPZ3, random = ~1 | M2FAMNUM, data = full_df_no_invalid)
-summary(lmm_base_1)$tTable %>% 
-  knitr::kable(caption = "Base Model - Composite Score ($\\Delta$)")
-
-lmm_base_2 = lme(D3TEM~ ctq_total + B3TEMZ3, random = ~1 | M2FAMNUM, data = full_df_no_invalid)
-summary(lmm_base_2)$tTable %>% 
-  knitr::kable(caption = "Base Model - Episodic Memory ($\\Delta$)")
-
-lmm_base_3 = lme(D3TEF~ ctq_total + B3TEFZ3, random = ~1 | M2FAMNUM, data = full_df_no_invalid)
-summary(lmm_base_3)$tTable %>% 
-  knitr::kable(caption = "Base Model - Executive Function ($\\Delta$)")
-```
-
-```{r}
-full_df_test = read_csv("./data/full_df.csv") %>% 
-  select(-1)
-# D3TCOMP
-full_df_test %>% 
-  select(D3TCOMP, B1PAGE_M2) %>% 
-  ggplot(aes(x = B1PAGE_M2, y = D3TCOMP)) + 
-  geom_point() +
-  geom_smooth(aes(color = 'red'))
-
-# D3TEF
-full_df_no_invalid %>% 
-  select(D3TEF, ctq_total) %>% 
-  ggplot(aes(x = ctq_total, y = D3TEF)) + 
-  geom_point() +
-  geom_smooth(aes(color = 'red'))
-
-# D3TEM
-full_df_no_invalid %>% 
-  select(D3TEM, ctq_total) %>% 
-  ggplot(aes(x = ctq_total, y = D3TEM)) + 
-  geom_point() +
-  geom_smooth(aes(color = 'red'))
-```
-
-
-## Adding more covariates (LMM)
-```{r}
-# add sex, age, and race as covariates
-lmm1_pt1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
-summary(lmm1_pt1)$tTable %>% 
-  knitr::kable(caption = "Model 1 - Composite Scores ($\\Delta$)")
-
-lmm2_pt1 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
-summary(lmm2_pt1)$tTable %>% 
-  knitr::kable(caption = "Model 1 - Episodic Memory ($\\Delta$)")
-
-lmm3_pt1 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
-summary(lmm3_pt1)$tTable %>% 
-  knitr::kable(caption = "Model 1 - Executive Function ($\\Delta$)")
-```
-
-```{r}
-# add (on top of previous ones), SES, alcohol, smoking, change in stroke, exercise (MET), sleeping disorder etc. 
-lmm1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
-summary(lmm1)$tTable %>% 
-  knitr::kable(caption = "Model 2 - Composite Scores ($\\Delta$)")
-
-lmm2 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
-summary(lmm2)$tTable %>% 
-  knitr::kable(caption = "Model 2 - Episodic Memory ($\\Delta$)")
-
-
-lmm3 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
-summary(lmm3)$tTable %>% 
-  knitr::kable(caption = "Model 2 - Executive Function ($\\Delta$)")
-```
-
-```{r}
-# adding education (one example)
-lmm1_edu = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PB1 + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W, random = ~1|M2FAMNUM,  data = full_df_no_invalid, method = "REML")
-summary(lmm1_edu)$tTable %>% 
-  knitr::kable()
-```
-
-Check model assumptions
-```{r}
-plot(lmm1, main = "Change in Composite Scores: resid vs. fitted")
-plot(lmm2, main = "Change in Episodic Memory: resid vs. fitted")
-plot(lmm3, main = "Change in Executive Function: resid vs. fitted")
-```
-
-
-# Modifiers
-
-* Stratified analysis can be one way to analyze the effect modification; however, as this analysis is usually done in a 2-by-2 table, we either need dichotomous variables (e.g. sex) or an arbitrary cutoff point for continuous variables. 
-
-
-The following part is to investigate whether adding an interaction term will improve the model fit. Use **likelihood-ratio test** for model comparison. Need to refit the model using maximum likelihood (ML). 
-
-Autonomy (B1SPWBA2)
-```{r}
-# Composite
-lmm1_1 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_autonomy = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_1, lmm1_autonomy)
-
-
-# EM
-lmm2_1 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_autonomy = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm2_1, lmm2_autonomy)
-
-# EF
-lmm3_1 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_autonomy = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBA2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm3_1, lmm3_autonomy)
-#plot(lmm3_autonomy)
-```
-
-Environmental Mastery (B1SPWBE2)
-```{r}
-# Composite
-lmm1_2 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_em = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2 + ctq_total*B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm1_2, lmm1_em)
-
-# EM
-lmm2_2 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_em = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2 + ctq_total*B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm2_2, lmm2_em)
-#plot(lmm2_autonomy)
-
-# EF
-lmm3_2 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_em = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBE2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm3_2, lmm3_em)
-```
-
-
-
-Personal Growth (B1SPWBG2)
-```{r}
-# Composite
-lmm1_3 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_pg = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2 + ctq_total*B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm1_3, lmm1_pg)
-
-
-# EM
-lmm2_3 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_pg = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2 + ctq_total*B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm2_3, lmm2_pg)
-
-# EF
-lmm3_3 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_pg = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBG2 + ctq_total*B1SPWBG2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm3_3, lmm3_pg)
-```
-
-Positive Relations with Others (B1SPWBR2)
-```{r}
-# Composite
-lmm1_4 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_pr = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2 + ctq_total*B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm1_4, lmm1_pr)
-
-
-# EM
-lmm2_4 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_pr = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2 + ctq_total*B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm2_4, lmm2_pr)
-
-# EF
-lmm3_4 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_pr = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBR2 + ctq_total*B1SPWBA2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm3_4, lmm3_pr)
-```
-
-Purpose in Life (B1SPWBU2)
-```{r}
-# Composite
-lmm1_5 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_pl = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2 + ctq_total*B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm1_5, lmm1_pl)
-
-
-# EM
-lmm2_5 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_pl = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2 + ctq_total*B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm2_5, lmm2_pl)
-
-# EF
-lmm3_5 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_pl = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBU2 + ctq_total*B1SPWBU2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm3_5, lmm3_pl)
-```
-
-
-Self-Acceptance (B1SPWBS2)
-```{r}
-# Composite
-lmm1_6 = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-lmm1_sa = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2 + ctq_total*B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm1_6, lmm1_sa)
-
-
-# EM
-lmm2_6 = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_sa = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2 + ctq_total*B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm2_6, lmm2_sa)
-
-# EF
-lmm3_6 = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_sa = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SPWBS2 + ctq_total*B1SPWBS2, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML") 
-anova(lmm3_6, lmm3_sa)
-```
-
-* the results are the same using `lmer` package. 
-
-### part 2: Self-administered Drugs
-Results being significant: Using Sedative has a moderating effect on the change in episodic memory (0.0198)
-Results being near the threshold: Using Painkillers upon change in episodic memory (0.0996); Using LDS upon change in Executive Functioning (0.06)
-
-"Sedative"(A)
-```{r}
-# COMP
-lmm1_1_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_1_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_1_base, lmm1_1_a)
-
-# EM
-lmm2_1_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_1_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_1_base, lmm2_1_a)
-
-# EF
-lmm3_1_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_1_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62A*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_1_base, lmm3_1_a)
-```
-"Tranquilizer"(B)
-```{r}
-# COMP
-lmm1_2_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_2_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_2_base, lmm1_2_a)
-
-# EM
-lmm2_2_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_2_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_2_base, lmm2_2_a)
-
-# EF
-lmm3_2_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_2_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62B*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_2_base, lmm3_2_a)
-```
-
-"Stimulant"(C)
-```{r}
-# COMP
-lmm1_3_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_3_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_3_base, lmm1_3_a)
-
-# EM
-lmm2_3_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_3_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_3_base, lmm2_3_a)
-
-# EF
-lmm3_3_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_3_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62C*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_3_base, lmm3_3_a)
-```
-
-"Painkiller" (D)
-```{r}
-# COMP
-lmm1_4_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_4_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_4_base, lmm1_4_a)
-
-# EM
-lmm2_4_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_4_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_4_base, lmm2_4_a)
-
-# EF
-lmm3_4_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_4_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62D*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_4_base, lmm3_4_a)
-```
-
-"Depress Medication" (E)
-```{r}
-# COMP
-lmm1_5_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_5_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_5_base, lmm1_5_a)
-
-# EM
-lmm2_5_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_5_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_5_base, lmm2_5_a)
-
-# EF
-lmm3_5_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_5_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62E*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_5_base, lmm3_5_a)
-```
-
-"Inhalant" &  "Heroin" (F/J)
-```{r eval = FALSE}
-# COMP
-lmm1_6_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_6_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_6_base, lmm1_6_a)
-
-# EM
-lmm2_6_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_6_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_6_base, lmm2_6_a)
-
-# EF
-lmm3_6_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_6_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62F*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_6_base, lmm3_6_a)
-```
-
-
-"Marijuana" (G)
-```{r}
-# COMP
-lmm1_7_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_7_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_7_base, lmm1_7_a)
-
-# EM
-lmm2_7_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_7_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_7_base, lmm2_7_a)
-
-# EF
-lmm3_7_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_7_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62G*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_7_base, lmm3_7_a)
-```
-
-
-"Cocaine" (H)
-```{r}
-# COMP
-lmm1_8_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_8_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_8_base, lmm1_8_a)
-
-# EM
-lmm2_8_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_8_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_8_base, lmm2_8_a)
-
-# EF
-lmm3_8_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_8_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62H*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_8_base, lmm3_8_a)
-```
-
-"LDS" (I)
-```{r}
-# COMP
-lmm1_9_base = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm1_9_a = lme(D3TCOMP ~ ctq_total + B3TCOMPZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm1_9_base, lmm1_9_a)
-
-# EM
-lmm2_9_base = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm2_9_a = lme(D3TEM ~ ctq_total + B3TEMZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm2_9_base, lmm2_9_a)
-
-# EF
-lmm3_9_base = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-lmm3_9_a = lme(D3TEF ~ ctq_total + B3TEFZ3 + B1PAGE_M2 + B1PTSEI + B1PB1 + B1PF7A + D1PB19 + B1PRSEX + B1PA39 + B4HMETMW + B1SA11W + B4ALCOH + B1SA62I*ctq_total, random = ~1 | M2FAMNUM, data = full_df_no_invalid, method = "ML")
-anova(lmm3_9_base, lmm3_9_a)
-```
-
 ## Multilevel Models
 
 *What is the multilevel?*
@@ -769,12 +387,12 @@ First, the reason we would like to use multilevel modeling is because we have me
 The **assumption** we were making when constructing the model is: participants from different families would have different intercepts of cognitive functioning at the baseline (i.e. having different intercept). We may expect each family has some differences that affects the intercept but not the slope (all families will have the same rate of change throughout time), and that members of the same family would share the same baseline cognitive functioning. 
 
 *What would the model be like?*
-In Dr. Lachman's paper, we have seen that they used multilevel models to evaluate different predictors of both level of and change in cognitive functioning. They have defined a model with level 1 slope (non time-varying) and level 2 random intercept (different baseline for each family). However, one thing I have understood wrong is the equation: It's not necessarily true that we put two predictor on the LHS of the equation as independent variables and called it multilevel modeling. We are, indeed, predicting both level and intercept, but the model itself will yield fitted results of intercept and slope. We are still predicting one independent variable: change in composite score, episodic memory, or executive functioning. The slopes and intercepts are by-products of the modeling.
+In Dr. Lachman's paper, we have seen that they used multilevel models to evaluate different predictors of both level of and change in cognitive functioning. They have defined a model with level 1 slope (non time-varying) and level 2 random intercept (different baseline for each family). However, one thing I have understood wrong is the equation: It's not necessarily true that we put two predictor on the LHS of the equation as independent variables and called it multilevel modeling. We are, indeed, predicting both level and intercept, but the model itself will yield fitted results of intercept and slope. We are still predicting one independent variable: change in composite score, episodic memory, or executive functioning. The slopes and intercepts are by-products of the modeling. More specifically, the models are fitted using maximum-likelihood.
 
 
 *Thinking about the change per month/years*
 
-Last time, we've seen that there's a huge variance associated with the elapsed time between M2 and M3 for the population. Thus, maybe we would like to move from the "change in magnitude" to "rate of change per year or per month". In this case, I don't think we still need to index the baseline. Or, I could include the time between M2 and M3 as a covariate. 
+Last time, we've seen that there's a huge variance associated with the elapsed time between M2 and M3 for the population. Thus, maybe we would like to move from the "change in magnitude" to "rate of change per year or per month". In this case, I don't think we still need to index the baseline. Or, I could include the time between M2 and M3 as a covariate. (10.10 updates: go for the second option)
 
 *What are the variables included in the model?*
 
@@ -800,7 +418,7 @@ Independent variable:
 * B1SA11W: chronic sleep problem in the past 12 months 
 
 
-### random intercept model (the very basic)
+### random intercept model - CTQ Total Scores (the very basic)
 
 Change in Composite Scores
 ```{r} 
@@ -858,16 +476,16 @@ summary(lmm_model2_ef)
 
 Take the last table for example (dependent variable: change in EF): 
 
-                         Estimate   Std. Error       df   t value Pr(>|t|)  
-                         
-B1PAGE_M2               -1.365e-01  1.619e-02  7.742e+02  -8.427  < 2e-16 ***
-B1PTSEI                  4.136e-02  1.525e-02  8.568e+02   2.712  0.006821 ** 
+|                         |Estimate|   Std. Error|       df|   t value| Pr(>$|t|$)|
+|---------:|-------:|-------:|-------:|--------:|---------------:|
+|B1PAGE_M2              | -1.365e-01|  1.619e-02 | 7.742e+02 | -8.427 | < 2e-16 ***|
+|B1PTSEI                |  4.136e-02 | 1.525e-02 | 8.568e+02 |  2.712 | 0.006821 ** |
 
-My interpretation is: age significantly predicts the change in executive functioning, i.e. on average, 1 year increase of age will result in 0.137 more decline in Executive Functioning scores. Similarly, SES significantly predicts the change in executive functioning, i.e. on average, 1 unit increase in SES will result in 0.0414 more increase in the Executive Functioning scores. 
+My interpretation is: age significantly predicts the change in executive functioning, i.e. on average (and control all other covariates), 1 year increase of age will result in 0.137 more decline in Executive Functioning scores. Similarly, SES significantly predicts the change in executive functioning, i.e. on average, 1 unit change in SES will result in 0.0414 change in the positive direction in the Executive Functioning scores. 
 
 For those insignificant results, the interpretation will thus be: the <independent variable> did not significantly predict the <dependent variable>. For example, the ctq_total did not significantly predict the change in executive functioning.
 
-*Since we are also concerning the threat and deprivation*
+### Threat and deprivation
 
 **threat**
 
@@ -900,6 +518,7 @@ summary(lmm_model2_ef_thr)
 ```
 
 **deprivation**
+
 Change in Composite Scores
 ```{r}
 lmm_model2_cs_dep <- lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
@@ -927,4 +546,431 @@ lmm_model2_ef_dep <- lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1
 ```{r}
 summary(lmm_model2_ef_dep)
 ```
+
+
+Check model assumptions
+```{r}
+plot(lmm_model2_cs, main = "Change in Composite Scores: resid vs. fitted")
+plot(lmm_model2_em, main = "Change in Episodic Memory: resid vs. fitted")
+plot(lmm_model2_ef, main = "Change in Executive Function: resid vs. fitted")
+```
+
+
+# Modifiers: eudaimonia effect
+
+* Stratified analysis can be one way to analyze the effect modification; however, as this analysis is usually done in a 2-by-2 table, we either need dichotomous variables (e.g. sex) or an arbitrary cutoff point for continuous variables. In later analysis, we included the modifiers as the interaction term.
+
+
+The following part is to investigate whether adding an interaction term will improve the model fit. Use **likelihood-ratio test** for model comparison. Also, since we are comparing nested models (meaning one model is nested in another), and we are generally interested in the mean coefficients $\beta$, we should use maximum likelihood (ML) 
+
+
+**What are the interaction terms?**
+
+We are interested in investigating how these eudaimonia factors have interacted with the childhood trauma. Thus, the interaction term included in the larger model should be **<trauma total score>$\times$<eudaimonia terms>**. I also refit the nested/smaller model by adding the eudaimonia terms as the covariate. Similarly, the same term was also added to the larger model. Thus, when we comparing models, we are truly comparing the effect modification of eudaimonia factors on childhood trauma rather than introducing a new term to the model that has never seen beforehand.
+
+## Results 
+
+Unfortunately, none of the interaction term between ctq_total/thr_total/dep_total and eudaimonia terms has been found to statistically significantly increase the power of the model. 
+
+
+## CTQ total
+
+Autonomy (B1SPWBA2)
+```{r}
+# Composite
+lmm1_1 = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_autonomy = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + ctq_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_1, lmm1_autonomy)
+
+# EM
+lmm2_1 = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_autonomy = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + ctq_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_1, lmm2_autonomy)
+
+# EF
+lmm3_1 = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed+ B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_autonomy = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + ctq_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_1, lmm3_autonomy)
+```
+
+**Interpretation**
+
+Suppose we have the following model comparison:
+
+|           |  npar|   AIC|    BIC|  logLik| deviance|  Chisq| Df| Pr(>Chisq)|
+|----------:|----:|----:|----:|----:|------:|------------:|------------:|---------:|         
+|lmm1_1     |     22| 873.42| 978.25| -414.71|829.42| | |          
+|lmm1_autonomy|   23| 874.94| 984.54| -414.47|   828.94| 0.4761|  1|     0.4902
+
+The first 5 columns are statistics regarding each model while the last 3 columns are related to model comparisons. "Chisq" computes the $\chi^2$ statistics for model comparisons. "Df" means the different in degrees of freedom between the model we would like to compare. Since we only added one interaction term, the $\Delta Df$ is 1. Lastly, "Pr(>Chisq)" gave us the p-value of whether the interaction term added to the model has improved the model prediction significantly. In the example shown above, $0.4902>>0.05$, we failed to reject the null and have to conclude that the interaction term isn't significant.
+
+
+Environmental Mastery (B1SPWBE2)
+```{r}
+# Composite
+lmm1_2 = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_mastery = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + ctq_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_2, lmm1_mastery)
+
+# EM
+lmm2_2 = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_mastery = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + ctq_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_2, lmm2_mastery)
+
+# EF
+lmm3_2 = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_mastery = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + ctq_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_2, lmm3_mastery)
+
+```
+
+
+
+Personal Growth (B1SPWBG2)
+```{r}
+# Composite
+lmm1_3 = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pg= lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + ctq_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_3, lmm1_pg)
+
+
+# EM
+lmm2_3 = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pg = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + ctq_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_3, lmm2_pg)
+
+
+# EF
+lmm3_3 = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pg = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + ctq_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_3, lmm3_pg)
+```
+
+Positive Relations with Others (B1SPWBR2)
+```{r}
+# Composite
+lmm1_4 = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pr = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + ctq_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_4, lmm1_pr)
+
+
+# EM
+lmm2_4 = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pr = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + ctq_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_4, lmm2_pr)
+
+# EF
+lmm3_4 = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pr = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + ctq_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_4, lmm3_pr)
+```
+
+Purpose in Life (B1SPWBU2)
+```{r}
+# Composite
+lmm1_5 = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pl = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + ctq_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_5, lmm1_pl)
+
+
+# EM
+lmm2_5 = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pl = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + ctq_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_5, lmm2_pl)
+
+# EF
+lmm3_5 = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pl = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + ctq_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_5, lmm3_pl)
+```
+
+
+Self-Acceptance (B1SPWBS2)
+```{r}
+# Composite
+lmm1_6 = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_sa = lmer(D3TCOMP ~ B3TCOMPZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + ctq_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_6, lmm1_sa)
+
+
+# EM
+lmm2_6 = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_sa = lmer(D3TEM ~ B3TEMZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + ctq_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_6, lmm2_sa)
+
+# EF
+lmm3_6 = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_sa = lmer(D3TEF ~ B3TEFZ3 + ctq_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + ctq_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_6, lmm3_sa)
+```
+
+
+## Threat
+
+
+Autonomy (B1SPWBA2)
+```{r}
+# Composite
+lmm1_1_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_autonomy_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + thr_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_1_tr, lmm1_autonomy_tr)
+
+# EM
+lmm2_1_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_autonomy_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2+  thr_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_1_tr, lmm2_autonomy_tr)
+
+# EF
+lmm3_1_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed+ B1SPWBA2+ (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_autonomy_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + thr_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_1_tr, lmm3_autonomy_tr)
+```
+
+Environmental Mastery (B1SPWBE2)
+```{r}
+# Composite
+lmm1_2_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_mastery_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + thr_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_2_tr, lmm1_mastery_tr)
+
+# EM
+lmm2_2_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_mastery_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + thr_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_2_tr, lmm2_mastery_tr)
+
+# EF
+lmm3_2_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_mastery_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + thr_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_2_tr, lmm3_mastery_tr)
+
+```
+
+
+
+Personal Growth (B1SPWBG2)
+```{r}
+# Composite
+lmm1_3_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pg_tr= lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + thr_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_3_tr, lmm1_pg_tr)
+
+
+# EM
+lmm2_3_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pg_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + thr_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_3_tr, lmm2_pg_tr)
+
+
+# EF
+lmm3_3_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pg_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + thr_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_3_tr, lmm3_pg_tr)
+```
+
+Positive Relations with Others (B1SPWBR2)
+```{r}
+# Composite
+lmm1_4_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pr_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + thr_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_4_tr, lmm1_pr_tr)
+
+
+# EM
+lmm2_4_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pr_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + thr_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_4_tr, lmm2_pr_tr)
+
+# EF
+lmm3_4_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pr_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + thr_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_4_tr, lmm3_pr_tr)
+```
+
+Purpose in Life (B1SPWBU2)
+```{r}
+# Composite
+lmm1_5_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pl_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + thr_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_5_tr, lmm1_pl_tr)
+
+
+# EM
+lmm2_5_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pl_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + thr_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_5_tr, lmm2_pl_tr)
+
+# EF
+lmm3_5_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pl_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + thr_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_5_tr, lmm3_pl_tr)
+```
+
+
+Self-Acceptance (B1SPWBS2)
+```{r}
+# Composite
+lmm1_6_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_sa_tr = lmer(D3TCOMP ~ B3TCOMPZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + thr_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_6_tr, lmm1_sa_tr)
+
+
+# EM
+lmm2_6_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_sa_tr = lmer(D3TEM ~ B3TEMZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + thr_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_6_tr, lmm2_sa_tr)
+
+# EF
+lmm3_6_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_sa_tr = lmer(D3TEF ~ B3TEFZ3 + thr_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + thr_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_6_tr, lmm3_sa_tr)
+```
+
+## Deprivation
+
+Autonomy (B1SPWBA2)
+```{r}
+# Composite
+lmm1_1_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_autonomy_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + dep_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_1_dep, lmm1_autonomy_dep)
+
+# EM
+lmm2_1_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBA2+ (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_autonomy_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + dep_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_1_dep, lmm2_autonomy_dep)
+
+# EF
+lmm3_1_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_autonomy_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBA2 + dep_total*B1SPWBA2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_1_dep, lmm3_autonomy_dep)
+```
+
+Environmental Mastery (B1SPWBE2)
+```{r}
+# Composite
+lmm1_2_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_mastery_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + dep_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_2_dep, lmm1_mastery_dep)
+
+# EM
+lmm2_2_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_mastery_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + dep_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_2_dep, lmm2_mastery_dep)
+
+# EF
+lmm3_2_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_mastery_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBE2 + dep_total*B1SPWBE2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_2_dep, lmm3_mastery_dep)
+
+```
+
+
+
+Personal Growth (B1SPWBG2)
+```{r}
+# Composite
+lmm1_3_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pg_dep= lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + dep_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm1_3_dep, lmm1_pg_dep)
+
+
+# EM
+lmm2_3_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pg_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + dep_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm2_3_dep, lmm2_pg_dep)
+
+
+# EF
+lmm3_3_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pg_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBG2 + dep_total*B1SPWBG2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+anova(lmm3_3_dep, lmm3_pg_dep)
+```
+
+Positive Relations with Others (B1SPWBR2)
+```{r}
+# Composite
+lmm1_4_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pr_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + dep_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_4_dep, lmm1_pr_dep)
+
+
+# EM
+lmm2_4_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pr_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + dep_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_4_dep, lmm2_pr_dep)
+
+# EF
+lmm3_4_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pr_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBR2 + dep_total*B1SPWBR2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_4_dep, lmm3_pr_dep)
+```
+
+Purpose in Life (B1SPWBU2)
+```{r}
+# Composite
+lmm1_5_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_pl_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + dep_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_5_dep, lmm1_pl_dep)
+
+
+# EM
+lmm2_5_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_pl_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + dep_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_5_dep, lmm2_pl_dep)
+
+# EF
+lmm3_5_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_pl_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBU2 + dep_total*B1SPWBU2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_5_dep, lmm3_pl_dep)
+```
+
+
+Self-Acceptance (B1SPWBS2)
+```{r}
+# Composite
+lmm1_6_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm1_sa_dep = lmer(D3TCOMP ~ B3TCOMPZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + dep_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm1_6_dep, lmm1_sa_dep)
+
+
+# EM
+lmm2_6_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm2_sa_dep = lmer(D3TEM ~ B3TEMZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + dep_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm2_6_dep, lmm2_sa_dep)
+
+# EF
+lmm3_6_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed +  B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+lmm3_sa_dep = lmer(D3TEF ~ B3TEFZ3 + dep_total + B1PRSEX + B1PAGE_M2 + B1PF7A + B1PTSEI + B1PA39 + B4ALCOH + D1PB19 + B4HMETMW + B1SA11W + yr_lapsed + B1SPWBS2 + dep_total*B1SPWBS2 + (1|M2FAMNUM), REML = FALSE, data = full_df_no_invalid)
+
+anova(lmm3_6_dep, lmm3_sa_dep)
+```
+
+
+
 
