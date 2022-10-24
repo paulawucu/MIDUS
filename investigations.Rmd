@@ -22,9 +22,9 @@ library(lme4)
 library(gee)
 library(stringr)
 library(stargazer)
-library(MCMCglmm)
 library(brms)
 library(lmerTest)
+library(nortest)
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
 theme_set(theme_minimal() + theme(legend.position = "bottom") + theme(plot.title = element_text(hjust = 0.5)))
 ```
@@ -36,10 +36,6 @@ m2_df =
   filter(B3TCOMPZ3 != 8 & B3TEMZ3 != 8 & B3TEFZ3 != 8) %>% 
   filter(B4QCT_SA != 98 & B4QCT_EN != 98 & B4QCT_MD != 8 & B4QCT_PN != 98 & B4QCT_EA != 98 & B4QCT_PA != 98) %>% 
   select(-c(37:47))
-```
-
-```{r}
-
 ```
 
 ## SES and Spouse SES Investigation
@@ -355,9 +351,38 @@ full_df_no_invalid = full_df_no_invalid %>%
          D3TEFR = D3TEF/yr_lapsed)
 ```
 
+
+
 ```{r}
 #write.csv(full_df_no_invalid, "./data/full_df_inval.csv")
 ```
+
+## Normality check and what it meant
+
+visual inspection
+```{r}
+a = full_df_no_invalid %>% 
+  ggplot(aes(x = D3TCOMP))+
+  geom_density()
+b = full_df_no_invalid %>% 
+  ggplot(aes(x = D3TEM))+
+  geom_density()
+c = full_df_no_invalid %>% 
+  ggplot(aes(x = D3TEF))+
+  geom_density()
+a/b/c
+```
+
+statistical tests
+```{r}
+nortest::lillie.test(full_df_no_invalid$B3TEMZ3)
+nortest::lillie.test(full_df_no_invalid$C3TEM)
+```
+For large sample dataset, the normality tests can detect very slight deviations from normality, making the statistical test results not that reliable. Also, according to central limit theorem, we can actually ignore the fact that the dataset is not normally distributed.
+
+Moreover, the B3TEMZ3 and C3TEM in the original/raw dataset (read directly from MIDUS website, see "updates.rmd" for more information) has failed the normality test, indicating that the original dataset doesn't follow normal distribution (this would be a question to MIDUS then). I haven't got any insights on how to calculate the unstandardized scores.
+
+
 
 
 # Modeling
@@ -481,9 +506,20 @@ Take the last table for example (dependent variable: change in EF):
 |B1PAGE_M2              | -1.365e-01|  1.619e-02 | 7.742e+02 | -8.427 | < 2e-16 ***|
 |B1PTSEI                |  4.136e-02 | 1.525e-02 | 8.568e+02 |  2.712 | 0.006821 ** |
 
+
 My interpretation is: age significantly predicts the change in executive functioning, i.e. on average (and control all other covariates), 1 year increase of age will result in 0.137 more decline in Executive Functioning scores. Similarly, SES significantly predicts the change in executive functioning, i.e. on average, 1 unit change in SES will result in 0.0414 change in the positive direction in the Executive Functioning scores. 
 
 For those insignificant results, the interpretation will thus be: the <independent variable> did not significantly predict the <dependent variable>. For example, the ctq_total did not significantly predict the change in executive functioning.
+
+
+**dependent variable is change in EM**:
+
+|                         |Estimate|   Std. Error|       df|   t value| Pr(>$|t|$)|
+|ctq_total               | -0.005618 |  0.002064| 838.954544 | -2.722 | 0.00663 ** |
+
+For example, subject A has ctq_total of 20 whereas subject B has ctq_total of 21. In this case, $\Delta_{EM_{B}} = \Delta_{EM_{A}} - 0.005618$. Both $\Delta_{EM_{A}}$ and $\Delta_{EM_B}$ are calculated as $M_3-M_2$, i.e. we can rewrite the previous equation as $EM_{B,M3} - EM_{B,M2} = EM_{A,M3} - EM_{A,M2} - 0.005618$. Followed from the equations, subject B thus has a more drastic decrease, comparing to themselves, in Episodic memory from M2 to M3 than subject A. To generalize what we just said, on average, 1 unit increase in the ctq_total score (more childhood trauma) will result in 0.005618 more decline in Episodic Memory scores. 
+
+
 
 ### Threat and deprivation
 
@@ -554,6 +590,7 @@ plot(lmm_model2_cs, main = "Change in Composite Scores: resid vs. fitted")
 plot(lmm_model2_em, main = "Change in Episodic Memory: resid vs. fitted")
 plot(lmm_model2_ef, main = "Change in Executive Function: resid vs. fitted")
 ```
+
 
 
 # Modifiers: eudaimonia effect

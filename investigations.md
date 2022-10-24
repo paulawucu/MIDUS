@@ -375,6 +375,58 @@ full_df_no_invalid = full_df_no_invalid %>%
 #write.csv(full_df_no_invalid, "./data/full_df_inval.csv")
 ```
 
+## Normality check and what it meant
+
+visual inspection
+
+``` r
+a = full_df_no_invalid %>% 
+  ggplot(aes(x = D3TCOMP))+
+  geom_density()
+b = full_df_no_invalid %>% 
+  ggplot(aes(x = D3TEM))+
+  geom_density()
+c = full_df_no_invalid %>% 
+  ggplot(aes(x = D3TEF))+
+  geom_density()
+a/b/c
+```
+
+![](investigations_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+
+statistical tests
+
+``` r
+nortest::lillie.test(full_df_no_invalid$B3TEMZ3)
+```
+
+    ## 
+    ##  Lilliefors (Kolmogorov-Smirnov) normality test
+    ## 
+    ## data:  full_df_no_invalid$B3TEMZ3
+    ## D = 0.070117, p-value = 7.642e-11
+
+``` r
+nortest::lillie.test(full_df_no_invalid$C3TEM)
+```
+
+    ## 
+    ##  Lilliefors (Kolmogorov-Smirnov) normality test
+    ## 
+    ## data:  full_df_no_invalid$C3TEM
+    ## D = 0.075349, p-value = 1.271e-12
+
+For large sample dataset, the normality tests can detect very slight
+deviations from normality, making the statistical test results not that
+reliable. Also, according to central limit theorem, we can actually
+ignore the fact that the dataset is not normally distributed.
+
+Moreover, the B3TEMZ3 and C3TEM in the original/raw dataset (read
+directly from MIDUS website, see “updates.rmd” for more information) has
+failed the normality test, indicating that the original dataset doesn’t
+follow normal distribution (this would be a question to MIDUS then). I
+haven’t got any insights on how to calculate the unstandardized scores.
+
 # Modeling
 
 I completely filter out all the observations with at least one invalid
@@ -799,6 +851,28 @@ For those insignificant results, the interpretation will thus be: the
 <dependent variable>. For example, the ctq_total did not significantly
 predict the change in executive functioning.
 
+**dependent variable is change in EM**:
+
+                        \|Estimate\| Std. Error\| df\| t value\|
+Pr(>\|*t*\|)\|
+
+\|ctq_total \| -0.005618 \| 0.002064\| 838.954544 \| -2.722 \| 0.00663
+\*\* \|
+
+For example, subject A has ctq_total of 20 whereas subject B has
+ctq_total of 21. In this case,
+*Δ*<sub>*E**M*<sub>*B*</sub></sub> = *Δ*<sub>*E**M*<sub>*A*</sub></sub> − 0.005618.
+Both *Δ*<sub>*E**M*<sub>*A*</sub></sub> and
+*Δ*<sub>*E**M*<sub>*B*</sub></sub> are calculated as
+*M*<sub>3</sub> − *M*<sub>2</sub>, i.e. we can rewrite the previous
+equation as
+*E**M*<sub>*B*, *M*3</sub> − *E**M*<sub>*B*, *M*2</sub> = *E**M*<sub>*A*, *M*3</sub> − *E**M*<sub>*A*, *M*2</sub> − 0.005618.
+Followed from the equations, subject B thus has a more drastic decrease,
+comparing to themselves, in Episodic memory from M2 to M3 than subject
+A. To generalize what we just said, on average, 1 unit increase in the
+ctq_total score (more childhood trauma) will result in 0.005618 more
+decline in Episodic Memory scores.
+
 ### Threat and deprivation
 
 **threat**
@@ -1135,19 +1209,19 @@ Check model assumptions
 plot(lmm_model2_cs, main = "Change in Composite Scores: resid vs. fitted")
 ```
 
-![](investigations_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->
+![](investigations_files/figure-gfm/unnamed-chunk-36-1.png)<!-- -->
 
 ``` r
 plot(lmm_model2_em, main = "Change in Episodic Memory: resid vs. fitted")
 ```
 
-![](investigations_files/figure-gfm/unnamed-chunk-35-2.png)<!-- -->
+![](investigations_files/figure-gfm/unnamed-chunk-36-2.png)<!-- -->
 
 ``` r
 plot(lmm_model2_ef, main = "Change in Executive Function: resid vs. fitted")
 ```
 
-![](investigations_files/figure-gfm/unnamed-chunk-35-3.png)<!-- -->
+![](investigations_files/figure-gfm/unnamed-chunk-36-3.png)<!-- -->
 
 # Modifiers: eudaimonia effect
 
