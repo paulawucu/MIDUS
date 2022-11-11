@@ -1,0 +1,122 @@
+---
+title: "recalculating"
+author: "Paula Wu (pw2551)"
+date: "11/9/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(corpcor)
+library(GPArotation)
+library(psych)
+library(nFactors)
+library(lavaan)
+knitr::opts_chunk$set(echo = TRUE,message = F, warning = F)
+theme_set(theme_minimal() + theme(legend.position = "bottom") + theme(plot.title = element_text(hjust = 0.5)))
+```
+
+Right now I haven't figured out how to map from the factor analysis results back to individual level values. 
+
+Let's do M2 first, retrieve the below variables
+
+word list immediate (B3TWLITU), digits backward (B3TDBS), category fluency (B3TCTFLU), number series (B3TNSTOT), backward counting (B3TBKTOT), word list delayed (B3TWLDTU),  mean of switch and non switch trial latencies (B3TSMXBB - SGST)
+
+```{r}
+m2p3 = read_tsv("./data/ICPSR_25281/DS0001/25281-0001-Data.tsv")
+```
+
+```{r}
+m2p3_selected_noid = m2p3 %>% 
+  select(B3TWLITU, B3TDBS, B3TCTFLU, B3TNSTOT, B3TBKTOT, B3TWLDTU, B3TSMXBB) %>% 
+  mutate(B3TSMXBB = -1 * B3TSMXBB) %>% # higher scores indicated faster response times
+  filter(B3TWLITU != 98,  # filter out the invalid numbers
+         B3TDBS != 98,
+         B3TCTFLU != 98, 
+         B3TBKTOT != 998,
+         B3TWLDTU != 98, 
+         B3TSMXBB != -98,
+         B3TNSTOT != 8)
+```
+
+To start, we conducted the exploratory factor analysis. Let's plot Scree plot to figure out how many factors (or groupings) we should keep. One cut-off is having eigenvalues greater than 1.
+```{r}
+summary(m2p3_selected_noid)
+ev = eigen(cor(m2p3_selected_noid))
+nS = nScree(x = ev$values)
+plotnScree(nS, legend = F)
+```
+
+The green-triangle line is the cutoff. We have confirmed that there are 2 eigenvalues that are greater than 1. Next, I did the oblique rotation. This method would reorient the factors to better represent the manifest variables. This methodology is according to Grace's email.
+```{r}
+# oblique rotation, with 2 factors
+fit = factanal(m2p3_selected_noid, 2, rotation = "oblimin")
+print(fit, digits = 2, cutoff = 0.3, sort = T)
+```
+We can see there are two different loadings, representing the correlation between the item and the factor. The factor2 have loadings with Word List Immediate (B3TWLITU) and Word List Delayed (B3TWLDTU) and factor1 have loadings with the rest. The result confirms the following quote:
+
+"We also found a good fit for the two factor model using confirmatory factor analysis. The first factor represented Episodic Memory (B3TEM) and was comprised of Word List Immediate and Word List Delayed. The second factor, Executive Functioning (B3TEF), was made up of the remaining variables."
+
+
+Confirmatory factor analysis
+```{r}
+# define two factors
+model <- '
+EM = ~B3TCTFLU + B3TNSTOT + B3TBKTOT + B3TSMXBB + B3TDBS
+EF = ~B3TWLITU + B3TWLDTU'
+
+# fit the model
+fit2 = cfa(model, data = m2p3_selected_noid)
+
+# display summary output
+summary(fit2,standardized = TRUE)
+```
+
+I am still little bit unsure of how to map the above results back to each participants as unstandardized values. But let's did the factor analysis on M3.
+
+Repeated the same steps for M3
+```{r}
+m3p3 = read.table(file = "./data/ICPSR_37095/DS0001/37095-0001-Data.tsv", sep = '\t', header = TRUE)
+```
+
+```{r}
+#B3TWLITU, B3TDBS, B3TCTFLU, B3TNSTOT, B3TBKTOT, B3TWLDTU, B3TSMXBB
+m3p3_selected_noid = m3p3 %>% 
+  select(C3TWLITU, C3TDBS, C3TCTFLU, C3TNSTOT, C3TBKTOT, C3TWLDTU, C3TSMXBB) %>% 
+  mutate(C3TSMXBB = C3TSMXBB * -1) %>% 
+  filter(C3TWLITU != 98,  # filter out the invalid
+         C3TDBS != 98,
+         C3TCTFLU != 98, 
+         C3TBKTOT != 998,
+         C3TWLDTU != 98, 
+         C3TSMXBB != -98,
+         C3TNSTOT != 8) %>% 
+  drop_na()  # C3TBKTOT has some NA's, drop before proceeding
+```
+```{r}
+summary(m3p3_selected_noid)
+ev2 = eigen(cor(m3p3_selected_noid))
+nS2 = nScree(x = ev2$values)
+plotnScree(nS2, legend = F)
+```
+Again, we confirmed from the above graph that we have two eigenvalues greater than 1. 
+
+```{r}
+# oblique rotation, with 2 factors
+fit3 = factanal(m3p3_selected_noid, 2, rotation = "oblimin")
+print(fit3, digits = 2, cutoff = 0.3, sort = T)
+```
+
+Confirmatory factor analysis
+```{r}
+# define two factors
+model2 <- '
+EM = ~C3TCTFLU + C3TNSTOT + C3TBKTOT + C3TSMXBB + C3TDBS
+EF = ~C3TWLITU + C3TWLDTU'
+
+# fit the model
+fit4 = cfa(model2, data = m3p3_selected_noid)
+
+# display summary output
+summary(fit4,standardized = TRUE)
+```
